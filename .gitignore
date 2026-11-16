@@ -1,0 +1,48 @@
+# ==========================================
+# 1. Seguridad y Variables Secretas
+# ==========================================
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ==========================================
+# 2. Dependencias / Librerías externas
+# ==========================================
+# Node.js / JavaScript / TypeScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# ==========================================
+# 3. Archivos generados / Compilación
+# ==========================================
+dist/
+build/
+out/
+.next/
+*.log
+
+# ==========================================
+# 4. Archivos del Sistema Operativo y del Editor
+# ==========================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Mac
+.DS_Store
+
+# IDEs / Editores
+.vscode/
+.idea/
