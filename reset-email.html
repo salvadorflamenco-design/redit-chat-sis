@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Correo de recuperación</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 2rem 1rem; background: #f8fafc; color: #0f172a; font-family: "Plus Jakarta Sans", sans-serif; }
+    .email-card { width: min(100%, 680px); padding: 3.5rem 3rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12); text-align: center; }
+    .logo { width: 4.5rem; height: 4.5rem; margin: 0 auto 1.5rem; }
+    .logo svg { width: 100%; height: 100%; }
+    h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.8rem); font-weight: 700; }
+    p { margin: 1rem 0 0; color: #334155; font-size: 0.95rem; line-height: 1.6; }
+    .button { display: inline-block; margin-top: 1.5rem; padding: 0.85rem 1.4rem; border-radius: 0.3rem; background: #1d6fe9; color: white; font-size: 0.85rem; font-weight: 700; text-decoration: none; }
+    .button:hover { background: #1d4ed8; }
+    .muted { color: #94a3b8; font-size: 0.8rem; }
+    .app-alert { position: fixed; top: 1rem; right: 1rem; display: flex; gap: 0.65rem; align-items: flex-start; width: min(360px, calc(100% - 2rem)); padding: 0.75rem 0.8rem; border: 1px solid; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(2, 6, 23, 0.2); font-size: 0.75rem; line-height: 1.1rem; }
+    .app-alert-info { color: #075985; background: #e0f2fe; border-color: #7dd3fc; }
+    .app-alert-icon { width: 1rem; height: 1rem; flex: 0 0 auto; }
+    .app-alert-message { flex: 1; }
+    .app-alert-close { margin-left: auto; border: 0; background: transparent; color: currentColor; cursor: pointer; font-size: 1.1rem; line-height: 1rem; }
+  </style>
+</head>
+<body>
+  <div id="alertContainer" aria-live="polite"></div>
+  <main class="email-card">
+    <div class="logo" aria-label="Logo de Chat Admin">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#1d6fe9" d="M12 3C6.477 3 2 6.8 2 11.5c0 2.8 1.5 5.3 4 6.8L4.5 21l4.2-1.7c1 .3 2.1.5 3.3.5 5.523 0 10-3.8 10-8.3S17.523 3 12 3Z"></path>
+        <circle cx="8" cy="11.5" r="1" fill="white"></circle>
+        <circle cx="12" cy="11.5" r="1" fill="white"></circle>
+        <circle cx="16" cy="11.5" r="1" fill="white"></circle>
+      </svg>
+    </div>
+    <h1>¡Hola, administrador!</h1>
+    <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+    <p>Haz clic en el siguiente botón para crear una nueva:</p>
+    <a class="button" href="reset-password.html" onclick="showAndContinue(event)">Restablecer contraseña</a>
+    <p>El enlace vence en 60 minutos y solo puede utilizarse una vez.</p>
+    <p class="muted">Si no lo solicitaste, ignora este correo; tu contraseña no cambiará.</p>
+  </main>
+
+  <script>
+    function showAndContinue(event) {
+      event.preventDefault();
+      const alertElement = document.createElement('div');
+      alertElement.className = 'app-alert app-alert-info';
+      alertElement.innerHTML = '<span class="app-alert-icon">ⓘ</span><span class="app-alert-message">Abriendo la pantalla para crear una nueva contraseña.</span><button class="app-alert-close" type="button">×</button>';
+      alertElement.querySelector('.app-alert-close').addEventListener('click', () => alertElement.remove());
+      document.getElementById('alertContainer').appendChild(alertElement);
+      setTimeout(() => { window.location.href = 'reset-password.html'; }, 500);
+    }
+  </script>
+</body>
+</html>
