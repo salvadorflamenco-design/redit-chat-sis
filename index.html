@@ -20,32 +20,21 @@
           },
           colors: {
             brand: {
-              50: '#eff6ff',
-              100: '#dbeafe',
               200: '#bfdbfe',
               300: '#93c5fd',
               400: '#60a5fa',
               500: '#3b82f6',
-              600: '#1d6fe9', /* Azul intenso del logo original */
-              700: '#1d4ed8',
-              800: '#1e40af',
-              900: '#1e3a8a',
-              950: '#0a192f',
+              600: '#1d6fe9',
             }
           },
           animation: {
             'glow-pulse': 'glow 6s ease-in-out infinite alternate',
-            'float': 'float 4s ease-in-out infinite',
           },
           keyframes: {
             glow: {
               '0%': { opacity: '0.4', transform: 'scale(0.98)' },
               '100%': { opacity: '0.8', transform: 'scale(1.04)' },
             },
-            float: {
-              '0%, 100%': { transform: 'translateY(0px)' },
-              '50%': { transform: 'translateY(-6px)' },
-            }
           }
         }
       }
@@ -83,9 +72,74 @@
         radial-gradient(at 90% 90%, rgba(191, 219, 254, 0.6) 0px, transparent 50%),
         radial-gradient(at 50% 50%, rgba(241, 245, 249, 0.8) 0px, transparent 70%);
     }
+
+    .app-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      width: 100%;
+      padding: 0.75rem 0.8rem;
+      border: 1px solid transparent;
+      border-radius: 0.75rem;
+      box-shadow: 0 10px 25px rgba(2, 6, 23, 0.25);
+      font-size: 0.75rem;
+      line-height: 1.1rem;
+      animation: alert-in 180ms ease-out;
+    }
+
+    .app-alert-success {
+      color: #166534;
+      background: #dcfce7;
+      border-color: #86efac;
+    }
+
+    .app-alert-error {
+      color: #991b1b;
+      background: #fee2e2;
+      border-color: #fca5a5;
+    }
+
+    .app-alert-info {
+      color: #075985;
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+    }
+
+    .app-alert-icon {
+      display: inline-flex;
+      flex: 0 0 auto;
+      width: 1rem;
+      height: 1rem;
+      margin-top: 0.05rem;
+    }
+
+    .app-alert-message {
+      flex: 1;
+    }
+
+    .app-alert-close {
+      flex: 0 0 auto;
+      margin-left: auto;
+      color: currentColor;
+      opacity: 0.55;
+      font-size: 1.1rem;
+      line-height: 1rem;
+      transition: opacity 150ms ease;
+    }
+
+    .app-alert-close:hover {
+      opacity: 1;
+    }
+
+    @keyframes alert-in {
+      from { opacity: 0; transform: translateY(-0.5rem); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body class="h-full mesh-gradient text-slate-100 transition-colors duration-500 font-sans antialiased flex flex-col justify-between selection:bg-brand-500 selection:text-white">
+
+  <div id="alertContainer" class="fixed top-4 left-4 z-[60] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-3" aria-live="polite"></div>
 
   <!-- Botón flotante para alternar Modo Oscuro / Modo Claro -->
   <div class="fixed top-6 right-6 z-50">
@@ -108,48 +162,17 @@
       <!-- Tarjeta Principal con Estilo de Vidrio Esmerilado -->
       <div class="glass-card rounded-3xl p-8 sm:p-10 transition-all duration-300">
         
-        <!-- Header del Formulario / Logo Ostentoso -->
+        <!-- Logo y encabezado del formulario -->
         <div class="flex flex-col items-center text-center">
           
-          <!-- Logo Rediseñado: Insignia 3D multicapa con brillo azul -->
-          <div class="relative mb-6 animate-float">
-            <!-- Aura brillante posterior -->
-            <div class="absolute -inset-2 bg-gradient-to-r from-brand-500 via-cyan-400 to-indigo-600 rounded-3xl blur-md opacity-60 group-hover:opacity-100 transition duration-1000 group-hover:duration-200"></div>
-            
-            <!-- Emblema Principal -->
-            <div class="relative w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-900 via-brand-700 to-brand-500 p-[1.5px] shadow-2xl shadow-brand-600/40">
-              <div class="w-full h-full bg-slate-950/80 rounded-[14px] flex items-center justify-center backdrop-blur-sm overflow-hidden relative">
-                
-                <!-- Reflejo interior brillante -->
-                <div class="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent opacity-60"></div>
-                
-                <!-- Icono de Chat Isométrico con microdestellos -->
-                <svg class="w-10 h-10 text-brand-400 drop-shadow-[0_4px_12px_rgba(59,130,246,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <!-- Burbuja Principal -->
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" 
-                        fill="url(#chatGrad)" stroke="url(#strokeGrad)"></path>
-                  <!-- Puntos de Conexión / Actividad Luminosos -->
-                  <circle cx="8.5" cy="12" r="1.2" fill="#ffffff" class="animate-pulse"></circle>
-                  <circle cx="12" cy="12" r="1.2" fill="#ffffff" class="animate-pulse" style="animation-delay: 200ms;"></circle>
-                  <circle cx="15.5" cy="12" r="1.2" fill="#ffffff" class="animate-pulse" style="animation-delay: 400ms;"></circle>
-                  
-                  <!-- Definición de Degradados SVG -->
-                  <defs>
-                    <linearGradient id="chatGrad" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stop-color="#1d6fe9" stop-opacity="0.8"/>
-                      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.9"/>
-                    </linearGradient>
-                    <linearGradient id="strokeGrad" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
-                      <stop offset="0%" stop-color="#93c5fd"/>
-                      <stop offset="100%" stop-color="#3b82f6"/>
-                    </linearGradient>
-                  </defs>
-                </svg>
-
-                <!-- Pequeño destello superior derecho -->
-                <div class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-cyan-300 rounded-full blur-[0.5px]"></div>
-              </div>
-            </div>
+          <!-- Logo de chat -->
+          <div class="mb-6 flex h-[96px] w-[96px] items-center justify-center" aria-label="Logo de Chat Admin">
+            <svg class="h-full w-full" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#1d6fe9" d="M12 3C6.477 3 2 6.8 2 11.5c0 2.8 1.5 5.3 4 6.8L4.5 21l4.2-1.7c1 .3 2.1.5 3.3.5 5.523 0 10-3.8 10-8.3S17.523 3 12 3Z"></path>
+              <circle cx="8" cy="11.5" r="1" fill="white"></circle>
+              <circle cx="12" cy="11.5" r="1" fill="white"></circle>
+              <circle cx="16" cy="11.5" r="1" fill="white"></circle>
+            </svg>
           </div>
 
           <!-- Título y Subtítulo con tipografía de alto impacto -->
@@ -166,7 +189,7 @@
           <div class="absolute inset-0 flex items-center">
             <div class="w-full border-t border-slate-700/60 transition-colors duration-300" id="dividerLine"></div>
           </div>
-          <div class="relative flex justify-center text-xs uppercase">
+          <div class="relative flex justify-center text-xs">
             <span class="bg-slate-900/90 px-3 py-0.5 rounded-full text-[11px] font-semibold text-slate-500 tracking-wider transition-colors duration-300" id="dividerBadge">
               Credenciales
             </span>
@@ -174,11 +197,11 @@
         </div>
 
         <!-- Formulario -->
-        <form id="loginForm" class="space-y-5" onsubmit="event.preventDefault(); handleLogin();">
+        <form class="space-y-5" novalidate onsubmit="event.preventDefault(); handleLogin();">
           
           <!-- Campo 1: Correo o Usuario -->
           <div class="space-y-1.5">
-            <label for="username" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider transition-colors" id="labelUser">
+            <label for="username" class="block text-xs font-semibold text-slate-300 tracking-wider transition-colors" id="labelUser">
               Usuario o Correo
             </label>
             <div class="relative group">
@@ -191,17 +214,19 @@
               <input 
                 type="text" 
                 id="username" 
+                oninput="clearFieldError('username')"
                 required
                 placeholder="admin@empresa.com" 
                 class="w-full pl-11 pr-4 py-3 bg-slate-900/70 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all shadow-inner"
               />
             </div>
+            <p id="usernameError" class="hidden text-xs text-red-400" role="alert"></p>
           </div>
 
           <!-- Campo 2: Contraseña con Toggle de visibilidad -->
           <div class="space-y-1.5">
             <div class="flex items-center justify-between">
-              <label for="password" class="block text-xs font-semibold text-slate-300 uppercase tracking-wider transition-colors" id="labelPass">
+              <label for="password" class="block text-xs font-semibold text-slate-300 tracking-wider transition-colors" id="labelPass">
                 Contraseña
               </label>
               <a href="#" class="text-xs font-medium text-brand-400 hover:text-brand-300 hover:underline transition-colors">
@@ -219,6 +244,7 @@
               <input 
                 type="password" 
                 id="password" 
+                oninput="clearFieldError('password')"
                 required
                 placeholder="••••••••••••" 
                 class="w-full pl-11 pr-11 py-3 bg-slate-900/70 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all shadow-inner"
@@ -226,7 +252,6 @@
               <!-- Botón Ver/Ocultar Contraseña -->
               <button 
                 type="button" 
-                id="togglePassBtn"
                 onclick="togglePassword()"
                 class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors focus:outline-none"
                 title="Mostrar/Ocultar contraseña"
@@ -242,14 +267,7 @@
                 </svg>
               </button>
             </div>
-          </div>
-
-          <!-- Opciones Adicionales: Recordarme -->
-          <div class="flex items-center">
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input type="checkbox" class="w-4 h-4 rounded border-slate-700 bg-slate-900 text-brand-600 focus:ring-brand-500 focus:ring-offset-slate-900">
-              <span class="text-xs text-slate-400 hover:text-slate-300 transition-colors" id="labelRemember">Mantener sesión iniciada</span>
-            </label>
+            <p id="passwordError" class="hidden text-xs text-red-400" role="alert"></p>
           </div>
 
           <!-- Botón de Acción Principal (Con degradado ostentoso e interactividad) -->
@@ -276,13 +294,13 @@
 
       <!-- Footer / Medidas de Seguridad -->
       <div class="mt-8 text-center flex flex-col items-center justify-center gap-2">
-        <div class="flex items-center gap-1.5 text-[11px] font-medium text-slate-400" id="footerSecurity">
+        <div class="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
           <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
           <span>Conexión segura cifrada con TLS 1.3 de extremo a extremo</span>
         </div>
-        <p class="text-[11px] text-slate-400" id="footerCopy">
+        <p class="text-[11px] text-slate-400">
           &copy; 2026 Chat Admin System. Todos los derechos reservados.
         </p>
       </div>
@@ -309,34 +327,127 @@
       }
     }
 
-    // 2. Simulación interactiva de Login (Loading -> Éxito)
+    // 2. Validación y simulación del inicio de sesión
+    function showFieldError(fieldId, labelId, errorId, message) {
+      const field = document.getElementById(fieldId);
+      const label = document.getElementById(labelId);
+      const error = document.getElementById(errorId);
+
+      field.classList.remove('border-slate-700/80', 'border-slate-300', 'focus:border-brand-500', 'focus:ring-brand-500/25');
+      field.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500/25');
+      field.setAttribute('aria-invalid', 'true');
+      label.classList.remove('text-slate-300', 'text-slate-700');
+      label.classList.add('text-red-400');
+      error.textContent = message;
+      error.classList.remove('hidden');
+    }
+
+    function clearFieldError(fieldId) {
+      const field = document.getElementById(fieldId);
+      const isLight = document.body.classList.contains('light');
+      const labelId = fieldId === 'username' ? 'labelUser' : 'labelPass';
+      const errorId = fieldId === 'username' ? 'usernameError' : 'passwordError';
+      const label = document.getElementById(labelId);
+      const error = document.getElementById(errorId);
+
+      field.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500/25');
+      field.classList.add(isLight ? 'border-slate-300' : 'border-slate-700/80', 'focus:border-brand-500', 'focus:ring-brand-500/25');
+      field.removeAttribute('aria-invalid');
+      label.classList.remove('text-red-400');
+      label.classList.add(isLight ? 'text-slate-700' : 'text-slate-300');
+      error.textContent = '';
+      error.classList.add('hidden');
+    }
+
+    function validateLoginForm() {
+      const username = document.getElementById('username');
+      const password = document.getElementById('password');
+      let isValid = true;
+
+      clearFieldError('username');
+      clearFieldError('password');
+
+      if (!username.value.trim()) {
+        showFieldError('username', 'labelUser', 'usernameError', 'El campo Usuario o Correo es obligatorio.');
+        isValid = false;
+      }
+
+      if (!password.value.trim()) {
+        showFieldError('password', 'labelPass', 'passwordError', 'El campo Contraseña es obligatorio.');
+        isValid = false;
+      }
+
+      return isValid;
+    }
+
+    function showAlert(message, type = 'info') {
+      const container = document.getElementById('alertContainer');
+      const alertType = ['success', 'error', 'info'].includes(type) ? type : 'info';
+      const alertElement = document.createElement('div');
+      const icon = document.createElement('span');
+      const messageElement = document.createElement('span');
+      const closeButton = document.createElement('button');
+
+      const icons = {
+        success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="m8 12 2.5 2.5L16 9"></path></svg>',
+        error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M9 9l6 6m0-6-6 6"></path></svg>',
+        info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 10v6m0-9h.01"></path></svg>'
+      };
+
+      alertElement.className = `app-alert app-alert-${alertType}`;
+      alertElement.setAttribute('role', 'alert');
+      icon.className = 'app-alert-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.innerHTML = icons[alertType];
+      messageElement.className = 'app-alert-message';
+      messageElement.textContent = message;
+      closeButton.type = 'button';
+      closeButton.className = 'app-alert-close';
+      closeButton.setAttribute('aria-label', 'Cerrar alerta');
+      closeButton.textContent = '×';
+      closeButton.addEventListener('click', () => alertElement.remove());
+
+      alertElement.append(icon, messageElement, closeButton);
+      container.appendChild(alertElement);
+      setTimeout(() => alertElement.remove(), 5000);
+    }
+
+    const demoCredentials = {
+      username: 'admin',
+      password: '123'
+    };
+
     function handleLogin() {
+      if (!validateLoginForm()) return;
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
       const btn = document.getElementById('submitBtn');
       const btnText = document.getElementById('btnText');
       const btnArrow = document.getElementById('btnArrow');
       const btnSpinner = document.getElementById('btnSpinner');
 
-      // Estado cargando
       btn.disabled = true;
       btnText.textContent = "Autenticando...";
       btnArrow.classList.add('hidden');
       btnSpinner.classList.remove('hidden');
 
       setTimeout(() => {
-        btnText.textContent = "¡Bienvenido!";
-        btnSpinner.classList.add('hidden');
-        btn.classList.remove('from-brand-600', 'via-brand-500', 'to-indigo-600');
-        btn.classList.add('bg-emerald-600');
+        const credentialsAreValid = username === demoCredentials.username && password === demoCredentials.password;
 
-        setTimeout(() => {
-          alert('¡Simulación completada con éxito! Las credenciales fueron enviadas.');
-          // Restaurar botón
-          btn.disabled = false;
-          btnText.textContent = "Iniciar sesión";
-          btnArrow.classList.remove('hidden');
-          btn.classList.remove('bg-emerald-600');
-          btn.classList.add('from-brand-600', 'via-brand-500', 'to-indigo-600');
-        }, 800);
+        if (credentialsAreValid) {
+          showAlert('Credenciales correctas. Abriendo el panel...', 'success');
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 700);
+          return;
+        }
+
+        showAlert('El usuario no existe o la contraseña no es correcta.', 'error');
+        btn.disabled = false;
+        btnText.textContent = "Iniciar sesión";
+        btnArrow.classList.remove('hidden');
+        btnSpinner.classList.add('hidden');
       }, 1400);
     }
 
@@ -362,9 +473,8 @@
         document.getElementById('subText').classList.remove('text-slate-600');
         document.getElementById('dividerBadge').className = "bg-slate-900/90 px-3 py-0.5 rounded-full text-[11px] font-semibold text-slate-500 tracking-wider";
         document.getElementById('dividerLine').className = "w-full border-t border-slate-700/60";
-        document.getElementById('labelUser').className = "block text-xs font-semibold text-slate-300 uppercase tracking-wider";
-        document.getElementById('labelPass').className = "block text-xs font-semibold text-slate-300 uppercase tracking-wider";
-        document.getElementById('labelRemember').className = "text-xs text-slate-400 hover:text-slate-300 transition-colors";
+        document.getElementById('labelUser').className = "block text-xs font-semibold text-slate-300 tracking-wider";
+        document.getElementById('labelPass').className = "block text-xs font-semibold text-slate-300 tracking-wider";
         
         // Inputs
         document.getElementById('username').className = "w-full pl-11 pr-4 py-3 bg-slate-900/70 border border-slate-700/80 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all shadow-inner";
@@ -381,9 +491,8 @@
         document.getElementById('subText').classList.add('text-slate-600');
         document.getElementById('dividerBadge').className = "bg-white px-3 py-0.5 rounded-full text-[11px] font-semibold text-slate-400 tracking-wider border border-slate-200";
         document.getElementById('dividerLine').className = "w-full border-t border-slate-200";
-        document.getElementById('labelUser').className = "block text-xs font-semibold text-slate-700 uppercase tracking-wider";
-        document.getElementById('labelPass').className = "block text-xs font-semibold text-slate-700 uppercase tracking-wider";
-        document.getElementById('labelRemember').className = "text-xs text-slate-600 hover:text-slate-800 transition-colors";
+        document.getElementById('labelUser').className = "block text-xs font-semibold text-slate-700 tracking-wider";
+        document.getElementById('labelPass').className = "block text-xs font-semibold text-slate-700 tracking-wider";
 
         // Inputs
         document.getElementById('username').className = "w-full pl-11 pr-4 py-3 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all shadow-sm";
