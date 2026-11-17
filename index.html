@@ -510,7 +510,9 @@
         document.getElementById('username').className = "w-full pl-11 pr-4 py-3 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all shadow-sm";
         document.getElementById('password').className = "w-full pl-11 pr-14 py-3 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all shadow-sm";
       }
+      localStorage.setItem('chatAdminTheme', isDark ? 'dark' : 'light');
     });
+    if (localStorage.getItem('chatAdminTheme') === 'light') themeToggleBtn.click();
   </script>
 </body>
 </html>

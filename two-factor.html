@@ -95,12 +95,14 @@
       document.body.classList.toggle('light',!isDark);
       themeIcon.textContent=isDark?'☀️':'🌙';
       themeText.textContent=isDark?'Modo claro':'Modo oscuro';
+      localStorage.setItem('chatAdminTheme',isDark?'dark':'light');
     });
     document.querySelectorAll('.code-error').forEach(error => {
       error.textContent = error.id === 'emailError'
         ? 'Código incorrecto. Revisa tu correo e intenta de nuevo'
         : 'Código incorrecto. Revisa la app e intenta de nuevo';
     });
+    if (localStorage.getItem('chatAdminTheme') === 'light') themeToggle.click();
     render();
   </script>
 </body>
