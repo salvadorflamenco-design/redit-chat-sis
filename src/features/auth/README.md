@@ -15,3 +15,7 @@ No almacenar contraseñas, tokens ni claves directamente en el código. Los secr
 ## Regla de texto para la interfaz
 
 Las pantallas deben usar texto en formato normal, respetando mayúsculas y minúsculas naturales del idioma. No utilizar la transformación visual `uppercase` ni etiquetas escritas completamente en mayúsculas para títulos, labels, botones o mensajes.
+
+## Regla de temas y validaciones
+
+Cada pantalla debe revisarse en modo oscuro y claro. En modo claro, los campos de texto deben usar fondo blanco, texto oscuro y placeholder gris. Las validaciones de contraseña deben mostrar un check verde por cada requisito cumplido.

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autenticación en dos pasos - Chat Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { color-scheme: light; --page:#f5f5f5; --surface:#fff; --border:#dedede; --text:#111827; --muted:#64748b; --blue:#1976d2; --blue-soft:#eaf3ff; --green:#009688; }
+    * { box-sizing:border-box; } body { margin:0; min-height:100vh; background:var(--page); color:var(--text); font-family:"Plus Jakarta Sans",sans-serif; } button,input { font:inherit; }
+    .shell { width:min(1140px,calc(100% - 4rem)); margin:1.6rem auto; } header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.8rem; } h1 { margin:0; font-size:1.3rem; } header p { margin:.25rem 0 0; color:var(--muted); font-size:.85rem; } .actions { display:flex; gap:.5rem; }
+    button { border:0; border-radius:.25rem; padding:.7rem 1rem; cursor:pointer; font-size:.84rem; } .btn-muted { background:#e2e2e2; color:#111; } .btn-primary { background:var(--blue); color:#fff; } .btn-primary:disabled { background:#8ab8e6; cursor:not-allowed; }
+    .layout { display:grid; grid-template-columns:334px 1fr; gap:20px; } .card { background:var(--surface); border:1px solid var(--border); border-radius:.55rem; padding:1.4rem; } .method-card { min-height:318px; } .method-heading { display:flex; gap:.7rem; align-items:flex-start; margin-bottom:1rem; } .shield { color:var(--blue); font-size:1.25rem; } h2 { margin:0; font-size:1rem; } .hint { color:var(--muted); font-size:.76rem; line-height:1.35; margin:.2rem 0 0; }
+    .method { width:100%; display:flex; gap:.8rem; align-items:flex-start; text-align:left; border:1px solid #d6d6d6; background:#fff; margin-top:.65rem; padding:.85rem .75rem; border-radius:.35rem; } .method.selected { border:2px solid #087bf2; background:#f4f9ff; padding:.79rem .69rem; } .method-icon { display:grid; place-items:center; width:2rem; height:2rem; flex:0 0 2rem; border-radius:.4rem; background:var(--blue); color:#fff; font-size:1rem; } .method-icon.green { background:var(--green); } .method strong { display:block; font-size:.87rem; font-weight:600; } .method span { display:block; color:var(--muted); font-size:.75rem; line-height:1.35; margin-top:.2rem; }
+    .detail { min-height:318px; } .detail-top { display:flex; align-items:center; gap:.7rem; } .detail-top .method-icon { width:2.4rem; height:2.4rem; flex-basis:2.4rem; } .badge { display:inline-block; margin-top:.35rem; padding:.18rem .55rem; border-radius:1rem; background:#e3f0e3; color:#267326; font-size:.68rem; } .instructions { margin-top:1.3rem; } .instructions h3 { margin:0 0 .7rem; font-size:.88rem; } ol { margin:0; padding-left:1.2rem; } li { margin:.55rem 0; font-size:.85rem; } .note { margin-top:1rem; color:var(--muted); font-size:.76rem; } .link { margin-top:.45rem; color:#146dcc; font-size:.78rem; cursor:pointer; }
+    .qr-layout { display:grid; grid-template-columns:1fr 260px; gap:1rem; align-items:center; } .qr-box { border:1px solid var(--border); border-radius:.5rem; padding:1rem; text-align:center; } .qr { width:170px; height:170px; margin:auto; background:repeating-conic-gradient(#111 0 8%,#fff 0 16%); position:relative; border:8px solid #fff; box-shadow:0 0 0 1px #ddd; } .qr:before,.qr:after { content:""; position:absolute; width:38px; height:38px; background:#fff; border:7px solid #111; box-shadow:inset 0 0 0 5px #fff; } .qr:before { top:4px; left:4px; } .qr:after { top:4px; right:4px; } .qr-box p { margin:.8rem 0 0; color:var(--muted); font-size:.72rem; } .secret { margin-top:.7rem!important; color:#111!important; font-weight:700; letter-spacing:.1em; font-size:.71rem!important; }
+    .verify-card { display:none; } .verify-card.active { display:block; } .selection-card.hidden { display:none; } .code-row { display:flex; gap:.55rem; margin-top:.6rem; } .code { width:46px; height:54px; border:1px solid #aaa; border-radius:.55rem; text-align:center; font-size:1.25rem; outline:0; } .code:focus { border:2px solid #087bf2; } .code-error { color:#b42318; font-size:.75rem; margin-top:.65rem; display:none; } .verify-footer { display:flex; justify-content:flex-end; margin-top:1.3rem; } .back-link { color:#086dcc; cursor:pointer; font-size:.78rem; margin-top:1.3rem; display:inline-block; }
+    @media(max-width:760px) { .shell { width:calc(100% - 2rem); margin:1rem auto; } header { align-items:flex-start; gap:1rem; flex-direction:column; } .layout,.qr-layout { grid-template-columns:1fr; } .detail { min-height:auto; } .code-row { gap:.35rem; } .code { width:calc((100vw - 4rem)/6); max-width:46px; } }
+  </style>
+<style>
+  :root { color-scheme: dark; --page:#080d1a; --surface:rgba(15,23,42,.78); --surface-strong:rgba(15,23,42,.92); --border:rgba(59,130,246,.2); --text:#f8fafc; --muted:#94a3b8; --blue:#3b82f6; --blue-soft:rgba(59,130,246,.14); --green:#10b981; }
+  body { background-color:var(--page); background-image:radial-gradient(at 15% 15%,rgba(29,111,233,.25) 0,transparent 55%),radial-gradient(at 85% 85%,rgba(30,64,175,.3) 0,transparent 55%),radial-gradient(at 50% 50%,rgba(14,165,233,.12) 0,transparent 65%); color:var(--text); transition:background .3s,color .3s; }
+  body.light { color-scheme:light; --page:#f1f5f9; --surface:rgba(255,255,255,.88); --surface-strong:#fff; --border:rgba(226,232,240,.95); --text:#0f172a; --muted:#64748b; --blue:#1d6fe9; --blue-soft:#eaf3ff; --green:#009688; background-color:var(--page); background-image:radial-gradient(at 10% 10%,rgba(219,234,254,.85) 0,transparent 50%),radial-gradient(at 90% 90%,rgba(191,219,254,.6) 0,transparent 50%),radial-gradient(at 50% 50%,rgba(241,245,249,.8) 0,transparent 70%); }
+  .theme-toggle { position:fixed; top:1.5rem; right:1.5rem; z-index:5; border:1px solid rgba(148,163,184,.25); background:rgba(15,23,42,.75); color:#cbd5e1; box-shadow:0 12px 30px rgba(2,6,23,.3); backdrop-filter:blur(14px); }
+  body.light .theme-toggle { background:rgba(255,255,255,.86); color:#334155; border-color:#cbd5e1; }
+  .shell { width:min(1140px,calc(100% - 4rem)); margin:5rem auto 2rem; } header { margin-bottom:1.5rem; } h1 { font-size:1.35rem; letter-spacing:-.03em; } header p { color:var(--muted); }
+  .card { background:var(--surface); border-color:var(--border); border-radius:1rem; box-shadow:0 25px 60px -15px rgba(2,6,23,.38),0 0 25px -5px rgba(29,111,233,.1); backdrop-filter:blur(20px); }
+  .btn-muted { background:rgba(148,163,184,.2); color:var(--text); } body.light .btn-muted { background:#e2e2e2; color:#111827; } .btn-primary { background:linear-gradient(90deg,#1d6fe9,#3b82f6,#4f46e5); box-shadow:0 10px 24px rgba(29,111,233,.25); }
+  .method { border-color:rgba(148,163,184,.3); background:rgba(15,23,42,.38); color:var(--text); } body.light .method { background:#fff; border-color:#d6d6d6; } .method.selected { border-color:#1680f5; background:var(--blue-soft); }
+  .badge { background:rgba(134,239,172,.14); color:#86efac; } body.light .badge { background:#e3f0e3; color:#267326; }
+  .qr-box { background:rgba(15,23,42,.3); } body.light .qr-box { background:#fff; } .qr { box-shadow:0 0 0 1px #64748b; }
+  .code { background:var(--surface-strong); color:var(--text); border-color:rgba(148,163,184,.65); } .code-error { color:#fca5a5; } body.light .code-error { color:#b42318; }
+  .method-card.hidden { display:none; } .layout.verification-layout { grid-template-columns:1fr; }
+  .shield { display:inline-flex; width:1.6rem; height:1.6rem; flex:0 0 1.6rem; align-items:center; justify-content:center; position:relative; font-size:0; color:#fff; }
+  .shield::before { content:""; position:absolute; inset:.05rem; background:#1976d2; clip-path:polygon(50% 0,92% 18%,86% 62%,50% 100%,14% 62%,8% 18%); }
+  .shield::after { content:"✓"; position:relative; z-index:1; font-size:.68rem; font-weight:800; line-height:1; }
+  .method-icon.green { background:transparent; color:transparent; position:relative; overflow:visible; }
+  .method-icon.green::before { content:""; position:absolute; inset:.08rem; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='none' stroke-linecap='round' stroke-width='18'%3E%3Cpath stroke='%234285F4' d='M50 50L75 15'/%3E%3Cpath stroke='%23FBBC04' d='M50 50L28 15'/%3E%3Cpath stroke='%2334A853' d='M50 50H15'/%3E%3Cpath stroke='%234285F4' d='M50 50H85'/%3E%3Cpath stroke='%23EA4335' d='M50 50L50 86'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat; }
+  @media(max-width:760px) { .theme-toggle { top:1rem; right:1rem; } .shell { width:calc(100% - 2rem); margin-top:5rem; } }
+  .shield::before { inset:0; background:url('icono-escudo.svg') center/contain no-repeat; clip-path:none; }
+  .shield::after { display:none; }
+  .method-icon:not(.green) { background:transparent; color:transparent; position:relative; }
+  .method-icon:not(.green)::before { content:""; position:absolute; inset:0; background:url('icono-correo.svg') center/contain no-repeat; }
+  .method-icon.green::before { inset:0; background:url('google-authenticator.svg') center/contain no-repeat; }
+  body:has(.verify-card.active) .layout { grid-template-columns:minmax(0,1fr); }
+  .verify-card.active { width:100%; min-width:0; }
+  .verify-card.active .qr-layout { grid-template-columns:minmax(0,1fr) 286px; align-items:start; }
+  .verify-card.active .code-row { display:flex; flex-wrap:nowrap; gap:.55rem; }
+  .verify-card.active .code { flex:0 0 46px; width:46px; }
+  .qr { background:url('two-factor-qr.png') center/contain no-repeat; }
+  .qr::before,.qr::after { display:none; }
+  .qr-box p { color:#fff; }
+  .qr-box .secret { color:#fff !important; }
+  body.light .qr-box p { color:var(--muted); }
+  body.light .qr-box .secret { color:#111 !important; }
+  @media(max-width:760px) { .verify-card.active .qr-layout { grid-template-columns:1fr; } .verify-card.active .code { flex-basis:calc((100vw - 4rem)/6); width:calc((100vw - 4rem)/6); max-width:46px; } }
+</style>
+</head>
+<body>
+  <button class="theme-toggle" id="themeToggle" type="button" aria-label="Cambiar tema"><span id="themeIcon">☀️</span> <span id="themeText">Modo claro</span></button>
+  <main class="shell">
+    <header><div><h1 id="pageTitle">Autenticación en dos pasos</h1><p id="pageSubtitle">Elige cómo recibirás los códigos de verificación al iniciar sesión</p></div><div class="actions"><button class="btn-muted" type="button" onclick="cancelFlow()">✕ &nbsp; Cancelar</button><button class="btn-primary" id="continueButton" type="button" onclick="continueFlow()">Continuar &nbsp; →</button></div></header>
+    <section class="layout">
+      <aside class="card method-card" id="methodPanel"><div class="method-heading"><span class="shield">⬟</span><div><h2>Elige tu método de autenticación</h2><p class="hint">Selecciona cómo deseas recibir los códigos de verificación cada vez que inicies sesión</p></div></div>
+        <button class="method selected" data-method="email" type="button" onclick="selectMethod('email')"><span class="method-icon">✉</span><span><strong>Correo electrónico</strong><span>Recibirás un código de verificación de 6 dígitos en tu correo cada vez que inicies sesión</span></span></button>
+        <button class="method" data-method="authenticator" type="button" onclick="selectMethod('authenticator')"><span class="method-icon green">▣</span><span><strong>Google Authenticator</strong><span>Genera códigos temporales con la app Google Authenticator, sin necesidad de conexión a internet</span></span></button>
+      </aside>
+      <section class="card detail selection-card" id="selectionCard"><div class="detail-top"><span class="method-icon" id="selectionIcon">✉</span><div><h2 id="selectionTitle">Correo electrónico</h2><span class="badge">✓ Método seleccionado</span></div></div><div class="instructions"><h3>Instrucciones</h3><ol id="selectionInstructions"></ol><p class="note" id="selectionNote"></p><p class="link">El código es de un solo uso y expira automáticamente por tu seguridad</p></div></section>
+      <section class="card detail verify-card" id="emailVerify"><div class="detail-top"><span class="method-icon">✉</span><div><h2>Correo electrónico</h2><span class="badge">✓ Método seleccionado</span></div></div><div class="instructions"><h3>Revisa tu correo</h3><p class="hint" style="font-size:.86rem">Enviando el código a <strong>co••••••@yopmail.com...</strong></p><p style="margin-top:1.3rem;font-size:.76rem">Código de verificación</p><div class="code-row" data-code-group="email"></div><p class="code-error" id="emailError">Ingresa el código de 6 dígitos enviado a tu correo.</p><p class="note">Revisa también tu carpeta de spam si no recibes el correo en 2 minutos</p><a class="back-link" href="two-factor-email.html">Abrir correo simulado</a></div></section>
+      <section class="card detail verify-card" id="authVerify"><div class="detail-top"><span class="method-icon green">▣</span><div><h2>Google Authenticator</h2><span class="badge">✓ Método seleccionado</span></div></div><div class="qr-layout"><div class="instructions"><h3>Vincula tu cuenta</h3><ol><li>Abre Google Authenticator en tu teléfono y toca “+”</li><li>Escanea el código QR o ingresa la clave manualmente</li><li>Escribe el código de 6 dígitos que muestra la app</li></ol><p style="margin-top:1rem;font-size:.76rem">Código de verificación</p><div class="code-row" data-code-group="auth"></div><p class="code-error" id="authError">Ingresa el código de 6 dígitos de la aplicación.</p><p class="note">Los códigos se renuevan cada 30 segundos y funcionan sin conexión a internet</p></div><div class="qr-box"><div class="qr" aria-label="Código QR de demostración"></div><p>¿No puedes escanearlo? Ingresa esta clave manualmente</p><p class="secret">67FT 6SC5 I62J KSAW QD3L<br>46HL PYFJ DXX2</p></div></div><a class="back-link" href="two-factor.html" onclick="selectMethod('email')">Usar código por correo</a></section>
+    </section>
+  </main>
+  <script>
+    let selectedMethod = 'email'; let currentStep = 'selection';
+    const instructions = { email:['Al iniciar sesión recibirás un correo con un código de 6 dígitos','Abre tu bandeja de entrada y busca el correo de verificación','Copia el código de verificación','Ingresa el código antes de que expire (15 min)'], authenticator:['Instala la app Google Authenticator en tu teléfono','Escanea el código QR que verás al continuar','Ingresa el código de 6 dígitos que muestra la app','Al iniciar sesión, usa el código vigente de la app'] };
+    function selectMethod(method) { selectedMethod=method; document.querySelectorAll('.method').forEach(b=>b.classList.toggle('selected',b.dataset.method===method)); renderSelection(); }
+    function renderSelection() { const auth=selectedMethod==='authenticator'; document.getElementById('selectionIcon').className='method-icon'+(auth?' green':''); document.getElementById('selectionIcon').textContent=auth?'▣':'✉'; document.getElementById('selectionTitle').textContent=auth?'Google Authenticator':'Correo electrónico'; document.getElementById('selectionInstructions').innerHTML=instructions[selectedMethod].map(item=>`<li>${item}</li>`).join(''); document.getElementById('selectionNote').textContent=auth?'Los códigos se renuevan cada 30 segundos y funcionan sin conexión a internet':'Revisa también tu carpeta de spam si no recibes el correo en 2 minutos'; }
+    function continueFlow() { currentStep='verify'; document.getElementById('selectionCard').classList.add('hidden'); document.getElementById('methodPanel').classList.add('hidden'); document.getElementById(selectedMethod==='email'?'emailVerify':'authVerify').classList.add('active'); document.getElementById('pageTitle').textContent='Verificación en dos pasos'; document.getElementById('pageSubtitle').textContent=selectedMethod==='email'?'Ingresa el código de 6 dígitos que enviamos a tu correo':'Escanea el código QR con la app y confirma con el código de 6 dígitos'; document.getElementById('continueButton').textContent='✓  Verificar'; document.getElementById('continueButton').onclick=verifyCode; makeCodeInputs(selectedMethod==='email'?'email':'auth'); }
+    function makeCodeInputs(group) { const host=document.querySelector(`[data-code-group="${group}"]`); if(host.children.length)return; for(let i=0;i<6;i++){const input=document.createElement('input'); input.className='code'; input.maxLength=1; input.inputMode='numeric'; input.autocomplete=i===0?'one-time-code':'off'; input.setAttribute('aria-label',`Dígito ${i+1}`); input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,''); if(input.value&&input.nextElementSibling)input.nextElementSibling.focus();}); input.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!input.value&&input.previousElementSibling)input.previousElementSibling.focus();}); host.appendChild(input);} host.firstElementChild.focus(); }
+    function verifyCode() { const group=selectedMethod==='email'?'email':'auth'; const code=[...document.querySelectorAll(`[data-code-group="${group}"] .code`)].map(i=>i.value).join(''); const error=document.getElementById(group==='email'?'emailError':'authError'); const valid=group==='email'?'405072':'123456'; if(code!==valid){error.style.display='block'; return;} error.style.display='none'; document.getElementById('continueButton').disabled=true; document.getElementById('continueButton').textContent='Verificando...'; setTimeout(()=>window.location.href='dashboard.html',500); }
+    function cancelFlow(){window.location.href='index.html';}
+    function render(){
+      renderSelection();
+      const params=new URLSearchParams(window.location.search);
+      if(params.get('step')==='verify' && params.get('method')==='email') continueFlow();
+    }
+    const themeToggle=document.getElementById('themeToggle');
+    const themeIcon=document.getElementById('themeIcon');
+    const themeText=document.getElementById('themeText');
+    let isDark=true;
+    themeToggle.addEventListener('click',()=>{
+      isDark=!isDark;
+      document.body.classList.toggle('light',!isDark);
+      themeIcon.textContent=isDark?'☀️':'🌙';
+      themeText.textContent=isDark?'Modo claro':'Modo oscuro';
+      localStorage.setItem('chatAdminTheme',isDark?'dark':'light');
+    });
+    document.querySelectorAll('.code-error').forEach(error => {
+      error.textContent = error.id === 'emailError'
+        ? 'Código incorrecto. Revisa tu correo e intenta de nuevo'
+        : 'Código incorrecto. Revisa la app e intenta de nuevo';
+    });
+    if (localStorage.getItem('chatAdminTheme') === 'light') themeToggle.click();
+    render();
+  </script>
+</body>
+</html>
