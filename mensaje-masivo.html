@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Admin - Mensaje masivo</title>
+  <script>
+    document.documentElement.classList.add('no-theme-transition');
+    if (localStorage.getItem('chatAdminTheme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(() => document.documentElement.classList.remove('no-theme-transition'));
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/shared/admin-shell.css">
+  <style>
+    .editor-content:empty::before {
+      content: attr(data-placeholder);
+      color: #64748b;
+      font-style: italic;
+      pointer-events: none;
+    }
+
+    .editor-content ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+
+    .editor-content ol {
+      list-style: decimal;
+      padding-left: 1.25rem;
+    }
+
+    .toolbar-btn:hover {
+      background: rgba(59, 130, 246, 0.16);
+      color: #93c5fd;
+    }
+
+    html.light .toolbar-btn:hover {
+      background: #eff6ff;
+      color: #1d6fe9;
+    }
+
+    .dropzone-area.drag-over {
+      border-color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+    }
+  </style>
+</head>
+
+<body class="min-h-full mesh-gradient text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+  <div class="relative z-10 flex min-h-screen">
+    <div id="adminSidebarMount"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <div id="adminTopbarMount"></div>
+
+      <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1600px] w-full mx-auto">
+        <div class="max-w-3xl space-y-5">
+          <!-- Encabezado -->
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight theme-text-primary">Mensaje masivo</h1>
+            <p class="mt-1 text-xs sm:text-sm font-medium theme-text-muted">
+              Envía un comunicado a todos los establecimientos que usan el chat, o solo a los que selecciones
+            </p>
+          </div>
+
+          <!-- Destinatarios -->
+          <section class="glass-card rounded-2xl p-5 space-y-3">
+            <h2 class="text-xs font-bold theme-text-primary">
+              Destinatarios <span class="text-rose-400">*</span>
+            </h2>
+
+            <div class="flex flex-wrap items-center gap-5">
+              <label class="inline-flex items-center gap-2 text-xs font-medium theme-text-secondary cursor-pointer">
+                <input type="radio" name="recipientsMode" value="all" checked onchange="toggleRecipientsMode()"
+                  class="accent-brand-500 w-4 h-4 cursor-pointer" />
+                <span>Todos los establecimientos</span>
+              </label>
+
+              <label class="inline-flex items-center gap-2 text-xs font-medium theme-text-secondary cursor-pointer">
+                <input type="radio" name="recipientsMode" value="selected" onchange="toggleRecipientsMode()"
+                  class="accent-brand-500 w-4 h-4 cursor-pointer" />
+                <span>Solo los seleccionados</span>
+              </label>
+            </div>
+
+            <!-- Panel establecimientos seleccionados -->
+            <div id="selectedEstablishmentsPanel" class="hidden pt-2 space-y-2.5">
+              <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center theme-text-muted">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <input id="estSearchInput" type="text" oninput="renderEstablishmentsList()"
+                  placeholder="Buscar establecimiento"
+                  class="theme-input w-full pl-10 pr-4 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+              </div>
+
+              <div class="rounded-xl border theme-border overflow-hidden">
+                <label class="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold theme-surface-muted border-b theme-border cursor-pointer">
+                  <input id="selectAllEstCheckbox" type="checkbox" onchange="toggleSelectAllEstablishments(this.checked)"
+                    class="accent-brand-500 w-4 h-4 rounded cursor-pointer" />
+                  <span>Seleccionar todos</span>
+                </label>
+                <div id="establishmentsChecklist" class="divide-y theme-border max-h-48 overflow-y-auto"></div>
+              </div>
+
+              <p id="selectedEstCountText" class="text-[11px] font-medium theme-text-muted">
+                0 de 2 establecimientos seleccionados
+              </p>
+            </div>
+          </section>
+
+          <!-- Mensaje rich-text + adjuntos -->
+          <section class="space-y-1.5">
+            <div class="glass-card rounded-2xl overflow-hidden">
+              <div class="px-5 pt-4 pb-2">
+                <h2 class="text-xs font-bold theme-text-primary">
+                  Mensaje <span class="text-rose-400">*</span>
+                </h2>
+              </div>
+
+              <div class="mx-5 mb-5 rounded-xl border theme-border overflow-hidden">
+                <!-- Barra de herramientas rich-text -->
+                <div class="px-3 py-2 border-b theme-border flex flex-wrap items-center gap-1 theme-surface-muted">
+                  <button type="button" onclick="formatEditor('bold')" title="Negrita"
+                    class="toolbar-btn w-7 h-7 rounded-lg text-xs font-extrabold transition-colors cursor-pointer">B</button>
+                  <button type="button" onclick="formatEditor('italic')" title="Cursiva"
+                    class="toolbar-btn w-7 h-7 rounded-lg text-xs italic font-serif transition-colors cursor-pointer">I</button>
+                  <button type="button" onclick="formatEditor('underline')" title="Subrayado"
+                    class="toolbar-btn w-7 h-7 rounded-lg text-xs underline transition-colors cursor-pointer">U</button>
+                  <span class="w-px h-4 bg-slate-600/40 mx-1"></span>
+                  <button type="button" onclick="formatEditor('insertUnorderedList')" title="Lista con viñetas"
+                    class="toolbar-btn w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                    </svg>
+                  </button>
+                  <button type="button" onclick="formatEditor('insertOrderedList')" title="Lista numerada"
+                    class="toolbar-btn w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6v4m-1 0h2m-2 4h2l-2 3h2" />
+                    </svg>
+                  </button>
+                  <span class="w-px h-4 bg-slate-600/40 mx-1"></span>
+                  <button type="button" onclick="triggerAttachmentPicker()" title="Adjuntar archivo"
+                    class="toolbar-btn w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                  </button>
+                  <button type="button" onclick="clearEditorFormatting()" title="Limpiar formato"
+                    class="toolbar-btn w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 4h11l-4 14M4 20l16-16" />
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- Área editable -->
+                <div id="broadcastEditor" contenteditable="true" oninput="updateCharCounter()"
+                  data-placeholder="Escribe aquí el mensaje que recibirán los establecimientos..."
+                  class="editor-content min-h-[150px] p-4 text-xs sm:text-sm theme-text-primary focus:outline-none leading-relaxed"></div>
+
+                <!-- Zona de adjuntos -->
+                <div id="attachmentDropzone"
+                  class="dropzone-area border-t border-dashed theme-border px-4 py-4 text-center transition-colors">
+                  <input id="attachmentInput" type="file" multiple class="hidden"
+                    accept=".jpg,.jpeg,.png,.gif,.webp,.heic,.pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt"
+                    onchange="handleFilesSelected(this.files)" />
+                  <p class="text-[11px] font-medium theme-text-secondary">
+                    Arrastra archivos aquí o
+                    <button type="button" onclick="triggerAttachmentPicker()"
+                      class="text-brand-400 hover:underline font-semibold cursor-pointer">
+                      haz clic para adjuntar
+                    </button>
+                  </p>
+                  <p class="mt-1 text-[10px] theme-text-muted">
+                    Formatos válidos: JPG, PNG, GIF, WEBP, HEIC, PDF, DOC, DOCX, XLS, XLSX, CSV, PPT, PPTX, TXT
+                  </p>
+                  <p class="text-[10px] theme-text-muted">
+                    Máximo 5 archivos de 25 MB cada uno (95 MB en total)
+                  </p>
+
+                  <div id="attachmentsList" class="hidden mt-3 flex flex-wrap justify-center gap-2"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-end pr-1">
+              <span id="charCounter" class="text-[11px] font-medium theme-text-muted">0 / 5000</span>
+            </div>
+          </section>
+
+          <!-- Configuración de tiempo de visualización -->
+          <section class="glass-card rounded-2xl p-5 space-y-3">
+            <h2 class="text-xs font-bold theme-text-primary">Configuración de tiempo de visualización de mensajes</h2>
+
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="w-40 space-y-1">
+                <label for="displayUnitSelect" class="block text-[11px] font-semibold theme-text-secondary">
+                  Unidad <span class="text-rose-400">*</span>
+                </label>
+                <select id="displayUnitSelect" onchange="validateDurationInput()"
+                  class="theme-input w-full px-3 py-2 rounded-xl text-xs font-medium focus:outline-none focus:border-brand-500 cursor-pointer">
+                  <option value="hours" selected>Horas</option>
+                  <option value="days">Días</option>
+                </select>
+              </div>
+
+              <div class="w-32 space-y-1">
+                <label for="displayQuantityInput" class="block text-[11px] font-semibold theme-text-secondary">
+                  Cantidad <span class="text-rose-400">*</span>
+                </label>
+                <input id="displayQuantityInput" type="number" min="1" max="720" value="8" oninput="validateDurationInput()"
+                  class="theme-input w-full px-3 py-2 rounded-xl text-xs font-medium focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+              </div>
+            </div>
+
+            <p id="durationHint" class="text-[11px] theme-text-muted">
+              Pasado ese tiempo el mensaje dejará de estar fijado (máximo 720 horas)
+            </p>
+          </section>
+
+          <!-- Parámetros de envío -->
+          <section class="glass-card rounded-2xl p-5 space-y-3">
+            <h2 class="text-xs font-bold theme-text-primary">Parámetros de envío</h2>
+
+            <label class="inline-flex items-center gap-2.5 text-xs font-semibold theme-text-primary cursor-pointer">
+              <input id="scheduleCheckbox" type="checkbox" onchange="toggleScheduleControls()"
+                class="accent-brand-500 w-4 h-4 rounded cursor-pointer" />
+              <span>Programar fecha y hora de envío</span>
+            </label>
+
+            <p id="scheduleHelperText" class="text-[11px] theme-text-muted pl-6">
+              Si no la marcas, el mensaje se envía en cuanto confirmes
+            </p>
+
+            <div id="scheduleDateTimeRow" class="hidden pt-2 flex flex-wrap items-end gap-3 pl-1">
+              <div class="space-y-1">
+                <label for="scheduleDateInput" class="block text-[11px] font-semibold theme-text-secondary">
+                  Fecha <span class="text-rose-400">*</span>
+                </label>
+                <input id="scheduleDateInput" type="date" value="2026-11-17"
+                  class="theme-input px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500" />
+              </div>
+
+              <div class="space-y-1">
+                <label for="scheduleHourSelect" class="block text-[11px] font-semibold theme-text-secondary">
+                  Hora <span class="text-rose-400">*</span>
+                </label>
+                <div class="flex items-center gap-1.5">
+                  <select id="scheduleHourSelect" class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer"></select>
+                  <span class="font-bold theme-text-muted">:</span>
+                  <select id="scheduleMinuteSelect" class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer"></select>
+                  <select id="scheduleAmPmSelect" class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer">
+                    <option value="AM">AM</option>
+                    <option value="PM" selected>PM</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Botones de acción -->
+          <div class="flex items-center justify-end gap-3">
+            <button type="button" onclick="resetBroadcastForm()"
+              class="px-4 py-2.5 rounded-xl text-xs font-semibold theme-btn-subtle transition-all flex items-center gap-2 cursor-pointer">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Limpiar</span>
+            </button>
+
+            <button id="submitBroadcastBtn" type="button" onclick="openBroadcastConfirmModal()"
+              class="btn-primary-gradient px-5 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+              <span id="submitBroadcastText">Enviar mensaje</span>
+            </button>
+          </div>
+
+          <!-- Mensajes programados y vigentes -->
+          <section class="glass-card rounded-2xl p-5 space-y-3">
+            <h2 class="text-sm font-bold theme-text-primary">Mensajes programados y vigentes</h2>
+            <div id="scheduledListContainer"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal de confirmación -->
+  <div id="confirmBroadcastModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4"
+    onclick="handleModalBackdropClick(event, 'confirmBroadcastModal')">
+    <div class="glass-card rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div class="modal-header-primary px-5 py-4">
+        <h3 id="confirmModalTitle" class="text-sm sm:text-base font-bold">Enviar mensaje</h3>
+      </div>
+
+      <div class="p-5 space-y-3 text-xs">
+        <p id="confirmModalQuestion" class="text-sm font-semibold theme-text-primary">
+          ¿Está seguro de enviar el mensaje masivo?
+        </p>
+        <ul id="confirmSummaryList" class="list-disc pl-5 space-y-1.5 theme-text-secondary"></ul>
+      </div>
+
+      <div class="px-5 py-3.5 border-t theme-border flex items-center justify-end gap-2.5">
+        <button type="button" onclick="closeModal('confirmBroadcastModal')"
+          class="px-4 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all cursor-pointer">
+          Revisar
+        </button>
+        <button type="button" onclick="confirmBroadcast()"
+          class="btn-primary-gradient px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/shared/admin-shell.js"></script>
+  <script>
+    const ESTABLISHMENTS = [
+      { id: 'est-1', name: 'Hospital ISSS Policlínico Roma' },
+      { id: 'est-2', name: 'Hospital Nacional Ahuachapán AH "Dr. Francisco Menéndez"' }
+    ];
+    const VALID_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'csv', 'ppt', 'pptx', 'txt'];
+    const MAX_FILES = 5;
+    const MAX_FILE_BYTES = 25 * 1024 * 1024;
+    const MAX_TOTAL_BYTES = 95 * 1024 * 1024;
+    const BROADCASTS_STORAGE_KEY = 'chatAdminBroadcasts_v1';
+
+    let selectedEstablishments = new Set();
+    let attachedFiles = [];
+    let scheduledMessages = loadBroadcasts();
+
+    function loadBroadcasts() {
+      try {
+        const raw = localStorage.getItem(BROADCASTS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (e) {
+        // Sin datos previos
+      }
+      return [];
+    }
+
+    function saveBroadcasts() {
+      try {
+        localStorage.setItem(BROADCASTS_STORAGE_KEY, JSON.stringify(scheduledMessages));
+      } catch (e) {
+        // Ignorar
+      }
+    }
+
+    function populateTimeSelectors() {
+      const hourSelect = document.getElementById('scheduleHourSelect');
+      const minSelect = document.getElementById('scheduleMinuteSelect');
+      hourSelect.innerHTML = Array.from({ length: 12 }, (_, idx) => {
+        const val = idx + 1;
+        return `<option value="${val}" ${val === 12 ? 'selected' : ''}>${val}</option>`;
+      }).join('');
+      minSelect.innerHTML = Array.from({ length: 12 }, (_, idx) => {
+        const val = String(idx * 5).padStart(2, '0');
+        return `<option value="${val}" ${val === '00' ? 'selected' : ''}>${val}</option>`;
+      }).join('');
+    }
+
+    function toggleRecipientsMode() {
+      const mode = document.querySelector('input[name="recipientsMode"]:checked').value;
+      document.getElementById('selectedEstablishmentsPanel').classList.toggle('hidden', mode !== 'selected');
+      renderEstablishmentsList();
+    }
+
+    function renderEstablishmentsList() {
+      const query = document.getElementById('estSearchInput').value.trim().toLowerCase();
+      const filtered = ESTABLISHMENTS.filter((e) => e.name.toLowerCase().includes(query));
+      const container = document.getElementById('establishmentsChecklist');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<p class="px-3.5 py-3 text-xs theme-text-muted">No se encontraron establecimientos.</p>';
+      } else {
+        container.innerHTML = filtered.map((e) => `
+          <label class="flex items-center gap-2.5 px-3.5 py-2.5 text-xs theme-text-secondary table-row-hover cursor-pointer">
+            <input type="checkbox" ${selectedEstablishments.has(e.id) ? 'checked' : ''}
+              onchange="toggleEstablishment('${e.id}', this.checked)"
+              class="accent-brand-500 w-4 h-4 rounded cursor-pointer" />
+            <span>${escapeHtml(e.name)}</span>
+          </label>
+        `).join('');
+      }
+
+      const selectAll = document.getElementById('selectAllEstCheckbox');
+      selectAll.checked = selectedEstablishments.size === ESTABLISHMENTS.length;
+      selectAll.indeterminate = selectedEstablishments.size > 0 && selectedEstablishments.size < ESTABLISHMENTS.length;
+
+      document.getElementById('selectedEstCountText').textContent =
+        `${selectedEstablishments.size} de ${ESTABLISHMENTS.length} establecimientos seleccionados`;
+    }
+
+    function toggleEstablishment(id, checked) {
+      if (checked) selectedEstablishments.add(id);
+      else selectedEstablishments.delete(id);
+      renderEstablishmentsList();
+    }
+
+    function toggleSelectAllEstablishments(checked) {
+      if (checked) ESTABLISHMENTS.forEach((e) => selectedEstablishments.add(e.id));
+      else selectedEstablishments.clear();
+      renderEstablishmentsList();
+    }
+
+    function formatEditor(command) {
+      const editor = document.getElementById('broadcastEditor');
+      editor.focus();
+      document.execCommand(command, false, null);
+      updateCharCounter();
+    }
+
+    function clearEditorFormatting() {
+      const editor = document.getElementById('broadcastEditor');
+      editor.focus();
+      document.execCommand('removeFormat', false, null);
+    }
+
+    function getPlainMessageText() {
+      const editor = document.getElementById('broadcastEditor');
+      return (editor.innerText || '').replace(/\u00a0/g, ' ').trim();
+    }
+
+    function updateCharCounter() {
+      const rawLen = (document.getElementById('broadcastEditor').innerText || '').replace(/\n$/, '').length;
+      const counter = document.getElementById('charCounter');
+      counter.textContent = `${rawLen} / 5000`;
+      counter.classList.toggle('text-rose-400', rawLen > 5000);
+    }
+
+    function triggerAttachmentPicker() {
+      document.getElementById('attachmentInput').click();
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+
+    function handleFilesSelected(fileList) {
+      const files = Array.from(fileList || []);
+      let totalSize = attachedFiles.reduce((acc, f) => acc + f.size, 0);
+
+      for (const file of files) {
+        if (attachedFiles.length >= MAX_FILES) {
+          showAlert(`Solo se permiten máximo ${MAX_FILES} archivos adjuntos.`, 'error');
+          break;
+        }
+        const ext = (file.name.split('.').pop() || '').toLowerCase();
+        if (!VALID_EXTENSIONS.includes(ext)) {
+          showAlert(`Formato no válido: ${file.name}`, 'error');
+          continue;
+        }
+        if (file.size > MAX_FILE_BYTES) {
+          showAlert(`El archivo ${file.name} supera el máximo de 25 MB.`, 'error');
+          continue;
+        }
+        if (totalSize + file.size > MAX_TOTAL_BYTES) {
+          showAlert('El peso total de los archivos supera el máximo de 95 MB.', 'error');
+          continue;
+        }
+        totalSize += file.size;
+        attachedFiles.push({ id: `${Date.now()}-${Math.random()}`, name: file.name, size: file.size });
+      }
+
+      document.getElementById('attachmentInput').value = '';
+      renderAttachments();
+    }
+
+    function removeAttachment(id) {
+      attachedFiles = attachedFiles.filter((f) => f.id !== id);
+      renderAttachments();
+    }
+
+    function renderAttachments() {
+      const container = document.getElementById('attachmentsList');
+      if (attachedFiles.length === 0) {
+        container.classList.add('hidden');
+        container.innerHTML = '';
+        return;
+      }
+      container.classList.remove('hidden');
+      container.innerHTML = attachedFiles.map((file) => `
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-medium badge-info-soft">
+          <span>📎 ${escapeHtml(file.name)} (${formatBytes(file.size)})</span>
+          <button type="button" onclick="removeAttachment('${file.id}')" class="hover:text-rose-400 font-bold cursor-pointer">×</button>
+        </span>
+      `).join('');
+    }
+
+    function setupDropzone() {
+      const dz = document.getElementById('attachmentDropzone');
+      ['dragenter', 'dragover'].forEach((evt) => {
+        dz.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dz.classList.add('drag-over');
+        });
+      });
+      ['dragleave', 'drop'].forEach((evt) => {
+        dz.addEventListener(evt, (e) => {
+          e.preventDefault();
+          dz.classList.remove('drag-over');
+        });
+      });
+      dz.addEventListener('drop', (e) => {
+        if (e.dataTransfer && e.dataTransfer.files) handleFilesSelected(e.dataTransfer.files);
+      });
+    }
+
+    function validateDurationInput() {
+      const unit = document.getElementById('displayUnitSelect').value;
+      const qtyInput = document.getElementById('displayQuantityInput');
+      const maxVal = unit === 'hours' ? 720 : 30;
+      qtyInput.max = String(maxVal);
+      const val = Number(qtyInput.value);
+      const hint = document.getElementById('durationHint');
+      if (val > maxVal || val < 1 || Number.isNaN(val)) {
+        hint.textContent = `Ingresa una cantidad válida (máximo ${maxVal} ${unit === 'hours' ? 'horas' : 'días'} = 720 horas)`;
+        hint.classList.add('text-rose-400');
+        return false;
+      }
+      hint.textContent = 'Pasado ese tiempo el mensaje dejará de estar fijado (máximo 720 horas)';
+      hint.classList.remove('text-rose-400');
+      return true;
+    }
+
+    function toggleScheduleControls() {
+      const scheduled = document.getElementById('scheduleCheckbox').checked;
+      document.getElementById('scheduleDateTimeRow').classList.toggle('hidden', !scheduled);
+      document.getElementById('scheduleHelperText').textContent = scheduled
+        ? 'El mensaje se enviará en la fecha y hora indicadas (hora de El Salvador)'
+        : 'Si no la marcas, el mensaje se envía en cuanto confirmes';
+      document.getElementById('submitBroadcastText').textContent = scheduled ? 'Programar mensaje' : 'Enviar mensaje';
+    }
+
+    function formatDisplayDate(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    function openBroadcastConfirmModal() {
+      const mode = document.querySelector('input[name="recipientsMode"]:checked').value;
+      if (mode === 'selected' && selectedEstablishments.size === 0) {
+        showAlert('Selecciona al menos un establecimiento destinatario.', 'error');
+        return;
+      }
+
+      const text = getPlainMessageText();
+      if (!text && attachedFiles.length === 0) {
+        showAlert('Escribe el contenido del mensaje o adjunta al menos un archivo.', 'error');
+        document.getElementById('broadcastEditor').focus();
+        return;
+      }
+      if (text.length > 5000) {
+        showAlert('El mensaje excede el límite máximo de 5000 caracteres.', 'error');
+        return;
+      }
+      if (!validateDurationInput()) {
+        showAlert('Revisa la duración configurada (máximo 720 horas).', 'error');
+        return;
+      }
+
+      const scheduled = document.getElementById('scheduleCheckbox').checked;
+      const dateIso = document.getElementById('scheduleDateInput').value;
+      if (scheduled && !dateIso) {
+        showAlert('Selecciona la fecha de envío programado.', 'error');
+        return;
+      }
+
+      const recipientsText = mode === 'all'
+        ? 'todos los establecimientos'
+        : `${selectedEstablishments.size} establecimiento(s) seleccionado(s)`;
+      const unit = document.getElementById('displayUnitSelect').value;
+      const qty = Number(document.getElementById('displayQuantityInput').value);
+      const visibleText = `${qty} ${unit === 'hours' ? (qty === 1 ? 'hora' : 'horas') : (qty === 1 ? 'día' : 'días')}`;
+
+      let sendText = 'inmediato al confirmar';
+      if (scheduled) {
+        const h = document.getElementById('scheduleHourSelect').value;
+        const min = document.getElementById('scheduleMinuteSelect').value;
+        const ampm = document.getElementById('scheduleAmPmSelect').value === 'PM' ? 'p. m.' : 'a. m.';
+        sendText = `${formatDisplayDate(dateIso)}, ${h}:${min} ${ampm} (hora de El Salvador)`;
+      }
+
+      document.getElementById('confirmModalTitle').textContent = scheduled ? 'Programar mensaje' : 'Enviar mensaje';
+      document.getElementById('confirmModalQuestion').textContent = scheduled
+        ? '¿Está seguro de programar el mensaje masivo?'
+        : '¿Está seguro de enviar el mensaje masivo?';
+
+      const items = [
+        `<strong>Destinatarios:</strong> ${escapeHtml(recipientsText)}`,
+        `<strong>Visible durante:</strong> ${escapeHtml(visibleText)}`,
+        `<strong>Envío:</strong> ${escapeHtml(sendText)}`
+      ];
+      if (attachedFiles.length > 0) {
+        items.push(`<strong>Adjuntos:</strong> ${attachedFiles.length} archivo(s)`);
+      }
+
+      document.getElementById('confirmSummaryList').innerHTML = items.map((i) => `<li>${i}</li>`).join('');
+      openModal('confirmBroadcastModal');
+    }
+
+    function confirmBroadcast() {
+      const mode = document.querySelector('input[name="recipientsMode"]:checked').value;
+      const scheduled = document.getElementById('scheduleCheckbox').checked;
+      const unit = document.getElementById('displayUnitSelect').value;
+      const qty = Number(document.getElementById('displayQuantityInput').value);
+      const dateIso = document.getElementById('scheduleDateInput').value;
+      const h = document.getElementById('scheduleHourSelect').value;
+      const min = document.getElementById('scheduleMinuteSelect').value;
+      const ampm = document.getElementById('scheduleAmPmSelect').value === 'PM' ? 'p. m.' : 'a. m.';
+
+      const entry = {
+        id: `bcast-${Date.now()}`,
+        status: scheduled ? 'Programado' : 'Fijado',
+        recipients: mode === 'all'
+          ? 'Todos los establecimientos'
+          : ESTABLISHMENTS.filter((e) => selectedEstablishments.has(e.id)).map((e) => e.name).join(', '),
+        text: getPlainMessageText() || '(Solo archivos adjuntos)',
+        duration: `${qty} ${unit === 'hours' ? 'horas' : 'días'}`,
+        sendLabel: scheduled ? `${formatDisplayDate(dateIso)} ${h}:${min} ${ampm}` : 'Enviado inmediatamente',
+        attachments: attachedFiles.map((f) => f.name)
+      };
+
+      scheduledMessages.unshift(entry);
+      saveBroadcasts();
+      closeModal('confirmBroadcastModal');
+      renderScheduledList();
+      resetBroadcastForm(true);
+      showAlert(scheduled ? 'Mensaje masivo programado correctamente.' : 'Mensaje masivo enviado y fijado correctamente.', 'success');
+    }
+
+    function deleteScheduledMessage(id) {
+      scheduledMessages = scheduledMessages.filter((m) => m.id !== id);
+      saveBroadcasts();
+      renderScheduledList();
+      showAlert('Registro de mensaje masivo retirado.', 'info');
+    }
+
+    function renderScheduledList() {
+      const container = document.getElementById('scheduledListContainer');
+      if (scheduledMessages.length === 0) {
+        container.innerHTML = `<p class="text-xs theme-text-muted py-1">No hay mensajes programados ni fijados en este momento</p>`;
+        return;
+      }
+
+      container.innerHTML = `<div class="space-y-2.5">${scheduledMessages.map((msg) => `
+        <div class="theme-surface-muted rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+          <div class="space-y-1 min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${msg.status === 'Programado' ? 'badge-warning-soft' : 'badge-success-solid'}">
+                ${escapeHtml(msg.status)}
+              </span>
+              <span class="text-[11px] font-semibold theme-text-primary truncate">${escapeHtml(msg.recipients)}</span>
+            </div>
+            <p class="text-xs theme-text-secondary break-words">${escapeHtml(msg.text)}</p>
+            <p class="text-[11px] theme-text-muted">
+              Vigencia: ${escapeHtml(msg.duration)} · ${escapeHtml(msg.sendLabel)}${msg.attachments.length ? ` · 📎 ${msg.attachments.length} adjunto(s)` : ''}
+            </p>
+          </div>
+          <button type="button" onclick="deleteScheduledMessage('${msg.id}')"
+            class="px-3 py-1.5 rounded-lg text-[11px] font-semibold quick-pill-danger transition-all self-start shrink-0 cursor-pointer">
+            ${msg.status === 'Programado' ? 'Cancelar' : 'Desfijar'}
+          </button>
+        </div>
+      `).join('')}</div>`;
+    }
+
+    function resetBroadcastForm(silent = false) {
+      document.querySelector('input[name="recipientsMode"][value="all"]').checked = true;
+      selectedEstablishments.clear();
+      document.getElementById('estSearchInput').value = '';
+      toggleRecipientsMode();
+      document.getElementById('broadcastEditor').innerHTML = '';
+      attachedFiles = [];
+      renderAttachments();
+      updateCharCounter();
+      document.getElementById('displayUnitSelect').value = 'hours';
+      document.getElementById('displayQuantityInput').value = '8';
+      validateDurationInput();
+      document.getElementById('scheduleCheckbox').checked = false;
+      toggleScheduleControls();
+      if (!silent) showAlert('Formulario limpiado.', 'info');
+    }
+
+    initAdminShell({ activeNav: 'Mensaje masivo', modalIds: ['confirmBroadcastModal'] });
+    populateTimeSelectors();
+    renderEstablishmentsList();
+    setupDropzone();
+    renderScheduledList();
+  </script>
+</body>
+
+</html>

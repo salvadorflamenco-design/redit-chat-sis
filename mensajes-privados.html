@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Admin - Mensajes privados</title>
+  <script>
+    document.documentElement.classList.add('no-theme-transition');
+    if (localStorage.getItem('chatAdminTheme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(() => document.documentElement.classList.remove('no-theme-transition'));
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/shared/admin-shell.css">
+</head>
+
+<body class="min-h-full mesh-gradient text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+  <div class="relative z-10 flex min-h-screen">
+    <div id="adminSidebarMount"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <div id="adminTopbarMount"></div>
+
+      <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-5 max-w-[1600px] w-full mx-auto flex flex-col">
+        <!-- Encabezado -->
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight theme-text-primary">Mensajes privados</h1>
+        </div>
+
+        <!-- Barra de filtros superior -->
+        <section class="glass-card rounded-2xl p-4">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div class="md:col-span-5">
+              <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center theme-text-muted">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </span>
+                <input id="privateUserSearchInput" type="text" oninput="applyPrivateFilters()"
+                  placeholder="Buscar por usuario"
+                  class="theme-input w-full pl-10 pr-4 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+              </div>
+            </div>
+
+            <div class="md:col-span-2">
+              <label for="privateDateFrom" class="block text-[11px] font-medium theme-text-muted mb-1">Desde</label>
+              <input id="privateDateFrom" type="date" onchange="applyPrivateFilters()"
+                class="theme-input w-full px-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-brand-500" />
+            </div>
+
+            <div class="md:col-span-2">
+              <label for="privateDateTo" class="block text-[11px] font-medium theme-text-muted mb-1">Hasta</label>
+              <input id="privateDateTo" type="date" onchange="applyPrivateFilters()"
+                class="theme-input w-full px-3 py-1.5 rounded-xl text-xs focus:outline-none focus:border-brand-500" />
+            </div>
+
+            <div class="md:col-span-3 flex justify-stretch md:justify-end">
+              <button id="clearPrivateFiltersBtn" type="button" onclick="clearPrivateFilters()" disabled
+                class="w-full md:w-auto px-4 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <span>Limpiar filtros</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Panel dividido: Conversaciones (izquierda) + Mensajes (derecha) -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1 min-h-[540px]">
+          <!-- Lista de conversaciones -->
+          <div id="conversationsPane" class="lg:col-span-4 glass-card rounded-2xl flex flex-col overflow-hidden max-h-[680px]">
+            <div class="px-5 py-3.5 border-b theme-border flex items-center justify-between">
+              <h2 class="text-sm font-bold theme-text-primary">Conversaciones</h2>
+              <span id="conversationsCountBadge" class="text-xs font-semibold theme-text-muted">12</span>
+            </div>
+            <div id="conversationsList" class="flex-1 overflow-y-auto"></div>
+          </div>
+
+          <!-- Visor de conversación -->
+          <div id="threadPane" class="lg:col-span-8 glass-card rounded-2xl flex flex-col overflow-hidden max-h-[680px]">
+            <div class="px-5 py-3.5 border-b theme-border flex items-center justify-between gap-3">
+              <p id="threadHeaderTitle" class="text-xs sm:text-sm font-bold theme-text-primary truncate">
+                Selecciona una conversación
+              </p>
+              <div id="threadHeaderActions" class="hidden items-center gap-3 shrink-0">
+                <span id="threadMessagesCount" class="text-xs font-medium theme-text-muted"></span>
+                <button type="button" onclick="toggleThreadFullscreen()" title="Expandir o restaurar vista"
+                  class="p-1.5 rounded-lg theme-btn-subtle transition-all cursor-pointer">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="threadBody" class="flex-1 overflow-y-auto chat-canvas-bg p-4 sm:p-5 flex flex-col">
+              <div class="flex-1 flex flex-col items-center justify-center text-center py-12 gap-3 theme-text-muted">
+                <svg class="w-10 h-10 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <p class="text-xs font-medium">Elige una conversación de la lista para ver sus mensajes</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal eliminar mensaje privado -->
+  <div id="deletePrivateMsgModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4"
+    onclick="handleModalBackdropClick(event, 'deletePrivateMsgModal')">
+    <div class="glass-card rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div class="modal-header-danger-soft px-5 py-3.5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <h3 class="text-sm sm:text-base font-bold">Eliminar mensaje</h3>
+        </div>
+        <button type="button" onclick="closeModal('deletePrivateMsgModal')"
+          class="text-white/85 hover:text-white text-xl leading-none cursor-pointer" aria-label="Cerrar">×</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div class="delete-warning-box rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 text-xs font-medium">
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span>Esta acción quedará registrada en el log de auditoría.</span>
+        </div>
+
+        <div class="theme-surface-muted rounded-xl p-3.5 space-y-1 text-xs">
+          <p class="text-[11px] font-medium theme-text-muted">Mensaje a eliminar:</p>
+          <p id="deleteMsgPreviewText" class="font-semibold theme-text-primary break-words"></p>
+          <p id="deleteMsgPreviewMeta" class="text-[11px] theme-text-muted"></p>
+        </div>
+
+        <div class="space-y-1">
+          <label for="deleteJustificationInput" class="block text-[11px] font-semibold theme-text-secondary">
+            Justificación (obligatoria)
+          </label>
+          <textarea id="deleteJustificationInput" rows="3" maxlength="250" oninput="updateDeleteSubmitState()"
+            placeholder="Indica el motivo por el que eliminas este mensaje..."
+            class="theme-input w-full px-3.5 py-2.5 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 resize-y"></textarea>
+          <div class="flex justify-end">
+            <span id="deleteJustificationCount" class="text-[11px] theme-text-muted">0 / 250</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-3.5 border-t theme-border flex items-center justify-end gap-2.5">
+        <button type="button" onclick="closeModal('deletePrivateMsgModal')"
+          class="px-4 py-2 rounded-xl text-xs font-semibold theme-text-muted hover:text-brand-400 transition-colors cursor-pointer">
+          Cancelar
+        </button>
+        <button id="confirmDeleteMsgBtn" type="button" onclick="confirmDeletePrivateMessage()" disabled
+          class="btn-danger-soft px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Eliminar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/shared/admin-shell.js"></script>
+  <script>
+    const PRIVATE_CONVERSATIONS = [
+      {
+        id: 'conv-1',
+        userA: 'ALEXANDER MICHAEL ROMERO VASQUEZ',
+        emailA: 'aromero@salud.gob.sv',
+        userB: 'LISSETTE ROSALES LOPEZ',
+        emailB: 'lrosales@salud.gob.sv',
+        lastDateIso: '2026-11-10',
+        lastDateDisplay: '10/11/2026',
+        totalHint: 6,
+        messages: [
+          { id: 'pm-101', side: 'right', sender: 'LISSETTE ROSALES LOPEZ', email: 'lrosales@salud.gob.sv', dateIso: '2026-11-10', dateDisplay: '10/11/2026', time: '08:18 a. m.', text: 'Hola', attachment: null },
+          { id: 'pm-102', side: 'left', sender: 'ALEXANDER MICHAEL ROMERO VASQUEZ', email: 'aromero@salud.gob.sv', dateIso: '2026-11-10', dateDisplay: '10/11/2026', time: '09:05 a. m.', text: 'Hola', attachment: null },
+          { id: 'pm-103', side: 'left', sender: 'ALEXANDER MICHAEL ROMERO VASQUEZ', email: 'aromero@salud.gob.sv', dateIso: '2026-11-10', dateDisplay: '10/11/2026', time: '11:13 a. m.', text: '', attachment: { type: 'img', name: '2026-11-04_13h37_12.png' } },
+          { id: 'pm-104', side: 'left', sender: 'ALEXANDER MICHAEL ROMERO VASQUEZ', email: 'aromero@salud.gob.sv', dateIso: '2026-11-10', dateDisplay: '10/11/2026', time: '11:14 a. m.', text: 'Prueba', attachment: { type: 'doc', name: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.pdf' } },
+          { id: 'pm-105', side: 'left', sender: 'ALEXANDER MICHAEL ROMERO VASQUEZ', email: 'aromero@salud.gob.sv', dateIso: '2026-11-10', dateDisplay: '10/11/2026', time: '11:15 a. m.', text: '', attachment: { type: 'doc', name: 'Copia de Título.pdf' } },
+          { id: 'pm-106', side: 'left', sender: 'ALEXANDER MICHAEL ROMERO VASQUEZ', email: 'aromero@salud.gob.sv', dateIso: '2026-11-10', dateDisplay: '10/11/2026', time: '01:40 p. m.', text: 'Prueba', attachment: { type: 'doc', name: 'Copia de Título (1).pdf' } }
+        ]
+      },
+      {
+        id: 'conv-2',
+        userA: 'ANA MERCEDES AYALA DE RAMIREZ',
+        emailA: 'aayala@salud.gob.sv',
+        userB: 'ALEJANDRO JOSE ZEPEDA GARCIA',
+        emailB: 'azepeda@salud.gob.sv',
+        lastDateIso: '2026-11-16',
+        lastDateDisplay: '16/11/2026',
+        totalHint: 76,
+        messages: [
+          { id: 'pm-201', side: 'left', sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'azepeda@salud.gob.sv', dateIso: '2026-11-16', dateDisplay: '16/11/2026', time: '08:40 a. m.', text: 'Hoy qué pasó con el cierre?', attachment: null },
+          { id: 'pm-202', side: 'right', sender: 'ANA MERCEDES AYALA DE RAMIREZ', email: 'aayala@salud.gob.sv', dateIso: '2026-11-16', dateDisplay: '16/11/2026', time: '08:42 a. m.', text: 'Ya se validó el envío', attachment: { type: 'img', name: 'IMG_20261116_084200.jpeg' } },
+          { id: 'pm-203', side: 'left', sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'azepeda@salud.gob.sv', dateIso: '2026-11-16', dateDisplay: '16/11/2026', time: '09:47 a. m.', text: 'Hola', attachment: null },
+          { id: 'pm-204', side: 'left', sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'azepeda@salud.gob.sv', dateIso: '2026-11-16', dateDisplay: '16/11/2026', time: '09:48 a. m.', text: 'Lab / Rx confirmado', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-3',
+        userA: 'ALEXANDER MICHAEL ROMERO VASQUEZ',
+        emailA: 'aromero@salud.gob.sv',
+        userB: 'ADRIANA MICHELLE FLORES POSADA',
+        emailB: 'aflores@salud.gob.sv',
+        lastDateIso: '2026-11-12',
+        lastDateDisplay: '12/11/2026',
+        totalHint: 7,
+        messages: [
+          { id: 'pm-301', side: 'left', sender: 'ALEXANDER MICHAEL ROMERO VASQUEZ', email: 'aromero@salud.gob.sv', dateIso: '2026-11-12', dateDisplay: '12/11/2026', time: '10:15 a. m.', text: 'Por favor revisar el reporte de referencia.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-4',
+        userA: 'ADELA YANIRA CASTRO DE RAMIREZ',
+        emailA: 'acastro@salud.gob.sv',
+        userB: 'ERICK EDILBERTO ESCOBAR ZEPEDA',
+        emailB: 'eescobar@salud.gob.sv',
+        lastDateIso: '2026-11-09',
+        lastDateDisplay: '09/11/2026',
+        totalHint: 1,
+        messages: [
+          { id: 'pm-401', side: 'left', sender: 'ADELA YANIRA CASTRO DE RAMIREZ', email: 'acastro@salud.gob.sv', dateIso: '2026-11-09', dateDisplay: '09/11/2026', time: '02:11 p. m.', text: 'Buenas tardes doctor, adjunto la nota.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-5',
+        userA: 'ADELA YANIRA CASTRO DE RAMIREZ',
+        emailA: 'acastro@salud.gob.sv',
+        userB: 'ANA MERCEDES AYALA DE RAMIREZ',
+        emailB: 'aayala@salud.gob.sv',
+        lastDateIso: '2026-11-12',
+        lastDateDisplay: '12/11/2026',
+        totalHint: 3,
+        messages: [
+          { id: 'pm-501', side: 'left', sender: 'ADELA YANIRA CASTRO DE RAMIREZ', email: 'acastro@salud.gob.sv', dateIso: '2026-11-12', dateDisplay: '12/11/2026', time: '11:02 a. m.', text: 'Recibido el listado de turnos.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-6',
+        userA: 'ANA MERCEDES AYALA DE RAMIREZ',
+        emailA: 'aayala@salud.gob.sv',
+        userB: 'EDUARDO EDGARDO LOPEZ GONZALEZ',
+        emailB: 'elopez@salud.gob.sv',
+        lastDateIso: '2026-11-12',
+        lastDateDisplay: '12/11/2026',
+        totalHint: 70,
+        messages: [
+          { id: 'pm-601', side: 'left', sender: 'ANA MERCEDES AYALA DE RAMIREZ', email: 'aayala@salud.gob.sv', dateIso: '2026-11-12', dateDisplay: '12/11/2026', time: '03:20 p. m.', text: 'Queda pendiente confirmación de farmacia.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-7',
+        userA: 'KARLA MARIA ARGUETA ACEVEDO',
+        emailA: 'kargueta@salud.gob.sv',
+        userB: 'ana',
+        emailB: 'ana@salud.gob.sv',
+        lastDateIso: '2026-11-05',
+        lastDateDisplay: '05/11/2026',
+        totalHint: 1,
+        messages: [
+          { id: 'pm-701', side: 'left', sender: 'KARLA MARIA ARGUETA ACEVEDO', email: 'kargueta@salud.gob.sv', dateIso: '2026-11-05', dateDisplay: '05/11/2026', time: '09:30 a. m.', text: 'Hola Ana, te comparto el enlace de consulta.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-8',
+        userA: 'ADRIANA MICHELLE FLORES POSADA',
+        emailA: 'aflores@salud.gob.sv',
+        userB: 'ALEJANDRO JOSE ZEPEDA GARCIA',
+        emailB: 'azepeda@salud.gob.sv',
+        lastDateIso: '2026-11-09',
+        lastDateDisplay: '09/11/2026',
+        totalHint: 1,
+        messages: [
+          { id: 'pm-801', side: 'left', sender: 'ADRIANA MICHELLE FLORES POSADA', email: 'aflores@salud.gob.sv', dateIso: '2026-11-09', dateDisplay: '09/11/2026', time: '04:05 p. m.', text: 'Confirmado para mañana a primera hora.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-9',
+        userA: 'ANA LUCILA MARTINEZ DE HIDALGO',
+        emailA: 'amartinez@salud.gob.sv',
+        userB: 'ALEJANDRO JOSE ZEPEDA GARCIA',
+        emailB: 'azepeda@salud.gob.sv',
+        lastDateIso: '2026-11-11',
+        lastDateDisplay: '11/11/2026',
+        totalHint: 1,
+        messages: [
+          { id: 'pm-901', side: 'left', sender: 'ANA LUCILA MARTINEZ DE HIDALGO', email: 'amartinez@salud.gob.sv', dateIso: '2026-11-11', dateDisplay: '11/11/2026', time: '10:50 a. m.', text: 'Gracias por el seguimiento.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-10',
+        userA: 'ADELA YANIRA CASTRO DE RAMIREZ',
+        emailA: 'acastro@salud.gob.sv',
+        userB: 'ADRIANA MICHELLE FLORES POSADA',
+        emailB: 'aflores@salud.gob.sv',
+        lastDateIso: '2026-11-09',
+        lastDateDisplay: '09/11/2026',
+        totalHint: 4,
+        messages: [
+          { id: 'pm-1001', side: 'left', sender: 'ADELA YANIRA CASTRO DE RAMIREZ', email: 'acastro@salud.gob.sv', dateIso: '2026-11-09', dateDisplay: '09/11/2026', time: '01:15 p. m.', text: 'Ya subí los anexos al expediente.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-11',
+        userA: 'ALAN DONALDO ALAS VASQUEZ',
+        emailA: 'aalas@salud.gob.sv',
+        userB: 'ana',
+        emailB: 'ana@salud.gob.sv',
+        lastDateIso: '2026-11-05',
+        lastDateDisplay: '05/11/2026',
+        totalHint: 8,
+        messages: [
+          { id: 'pm-1101', side: 'left', sender: 'ALAN DONALDO ALAS VASQUEZ', email: 'aalas@salud.gob.sv', dateIso: '2026-11-05', dateDisplay: '05/11/2026', time: '08:10 a. m.', text: 'Buenos días, revisando las interconsultas.', attachment: null }
+        ]
+      },
+      {
+        id: 'conv-12',
+        userA: 'ADELA YANIRA CASTRO DE RAMIREZ',
+        emailA: 'acastro@salud.gob.sv',
+        userB: 'MAURICIO ROBERTO MARTINEZ GUEVARA',
+        emailB: 'mmartinez@salud.gob.sv',
+        lastDateIso: '2026-11-06',
+        lastDateDisplay: '06/11/2026',
+        totalHint: 3,
+        messages: [
+          { id: 'pm-1201', side: 'left', sender: 'ADELA YANIRA CASTRO DE RAMIREZ', email: 'acastro@salud.gob.sv', dateIso: '2026-11-06', dateDisplay: '06/11/2026', time: '03:45 p. m.', text: 'Todo listo para el traslado.', attachment: null }
+        ]
+      }
+    ];
+
+    let selectedConversationId = null;
+    let isThreadFullscreen = false;
+    let pendingDeleteTarget = null;
+
+    function getFilteredConversations() {
+      const q = document.getElementById('privateUserSearchInput').value.trim().toLowerCase();
+      const from = document.getElementById('privateDateFrom').value;
+      const to = document.getElementById('privateDateTo').value;
+
+      return PRIVATE_CONVERSATIONS.filter((c) => {
+        const matchesUser = !q || c.userA.toLowerCase().includes(q) || c.userB.toLowerCase().includes(q);
+        const matchesFrom = !from || c.lastDateIso >= from;
+        const matchesTo = !to || c.lastDateIso <= to;
+        return matchesUser && matchesFrom && matchesTo;
+      });
+    }
+
+    function applyPrivateFilters() {
+      const q = document.getElementById('privateUserSearchInput').value.trim();
+      const from = document.getElementById('privateDateFrom').value;
+      const to = document.getElementById('privateDateTo').value;
+      document.getElementById('clearPrivateFiltersBtn').disabled = !q && !from && !to;
+      renderConversationsList();
+      if (selectedConversationId) renderSelectedConversation();
+    }
+
+    function clearPrivateFilters() {
+      document.getElementById('privateUserSearchInput').value = '';
+      document.getElementById('privateDateFrom').value = '';
+      document.getElementById('privateDateTo').value = '';
+      applyPrivateFilters();
+    }
+
+    function renderConversationsList() {
+      const items = getFilteredConversations();
+      document.getElementById('conversationsCountBadge').textContent = String(items.length);
+      const container = document.getElementById('conversationsList');
+
+      if (items.length === 0) {
+        container.innerHTML = `<p class="px-5 py-10 text-center text-xs theme-text-muted">No se encontraron conversaciones con ese filtro.</p>`;
+        return;
+      }
+
+      container.innerHTML = items.map((c) => {
+        const isActive = c.id === selectedConversationId;
+        const initial = c.userA.charAt(0).toUpperCase();
+        return `
+          <button type="button" onclick="selectConversation('${c.id}')"
+            class="conv-item ${isActive ? 'conv-active' : ''} w-full text-left px-4 py-3 flex items-center gap-3 transition-colors cursor-pointer">
+            <span class="w-8 h-8 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0">
+              ${escapeHtml(initial)}
+            </span>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-bold truncate ${isActive ? 'text-brand-400' : 'theme-text-primary'}">${escapeHtml(c.userA)}</p>
+              <p class="text-[11px] truncate theme-text-muted">→ ${escapeHtml(c.userB)} · ${escapeHtml(c.lastDateDisplay)}</p>
+            </div>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold theme-surface-muted shrink-0">
+              ${c.messages.length !== 6 && c.totalHint > c.messages.length ? c.totalHint : c.messages.length}
+            </span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectConversation(convId) {
+      selectedConversationId = convId;
+      renderConversationsList();
+      renderSelectedConversation();
+    }
+
+    function renderSelectedConversation() {
+      const conv = PRIVATE_CONVERSATIONS.find((c) => c.id === selectedConversationId);
+      const titleEl = document.getElementById('threadHeaderTitle');
+      const actionsEl = document.getElementById('threadHeaderActions');
+      const bodyEl = document.getElementById('threadBody');
+
+      if (!conv) {
+        titleEl.textContent = 'Selecciona una conversación';
+        actionsEl.classList.add('hidden');
+        actionsEl.classList.remove('flex');
+        return;
+      }
+
+      titleEl.textContent = `${conv.userA} ⇄ ${conv.userB}`;
+      actionsEl.classList.remove('hidden');
+      actionsEl.classList.add('flex');
+      const displayCount = conv.totalHint > conv.messages.length && conv.totalHint !== 6 ? conv.totalHint : conv.messages.length;
+      document.getElementById('threadMessagesCount').textContent = `${displayCount} mensajes`;
+
+      if (conv.messages.length === 0) {
+        bodyEl.innerHTML = `<p class="text-center text-xs theme-text-muted py-12">No quedan mensajes en esta conversación.</p>`;
+        return;
+      }
+
+      let lastGroupDate = '';
+      const htmlParts = [];
+
+      conv.messages.forEach((m) => {
+        if (m.dateDisplay !== lastGroupDate) {
+          lastGroupDate = m.dateDisplay;
+          htmlParts.push(`
+            <div class="flex justify-center my-2">
+              <span class="px-3 py-0.5 rounded-full text-[11px] font-semibold theme-surface-muted">${escapeHtml(m.dateDisplay)}</span>
+            </div>
+          `);
+        }
+
+        const isRight = m.side === 'right';
+        const attHtml = m.attachment ? `
+          <div class="chat-attachment mt-1.5 rounded-lg px-2.5 py-1.5 flex items-center gap-2 text-xs theme-text-secondary">
+            <span>${m.attachment.type === 'img' ? '🖼️' : '📄'}</span>
+            <span class="truncate max-w-[260px]">${escapeHtml(m.attachment.name)}</span>
+          </div>` : '';
+
+        htmlParts.push(`
+          <div class="flex ${isRight ? 'justify-end' : 'justify-start'} mb-2.5">
+            <div class="${isRight ? 'chat-bubble-alt' : 'chat-bubble'} rounded-2xl px-4 py-2.5 max-w-md shadow-sm space-y-1">
+              <p class="text-[11px] font-bold text-brand-400">${escapeHtml(m.sender)}</p>
+              ${attHtml}
+              ${m.text ? `<p class="text-xs theme-text-primary leading-relaxed break-words">${escapeHtml(m.text)}</p>` : ''}
+              <div class="flex items-center justify-end gap-2 pt-0.5">
+                <span class="text-[10px] theme-text-muted">${escapeHtml(m.time)}</span>
+                <button type="button" onclick="openDeletePrivateMsgModal('${conv.id}', '${m.id}')"
+                  title="Eliminar mensaje" aria-label="Eliminar mensaje"
+                  class="p-1 rounded btn-trash-soft transition-colors cursor-pointer">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        `);
+      });
+
+      bodyEl.innerHTML = htmlParts.join('');
+    }
+
+    function toggleThreadFullscreen() {
+      isThreadFullscreen = !isThreadFullscreen;
+      document.getElementById('conversationsPane').classList.toggle('hidden', isThreadFullscreen);
+      const threadPane = document.getElementById('threadPane');
+      threadPane.classList.toggle('lg:col-span-8', !isThreadFullscreen);
+      threadPane.classList.toggle('lg:col-span-12', isThreadFullscreen);
+    }
+
+    function openDeletePrivateMsgModal(convId, msgId) {
+      const conv = PRIVATE_CONVERSATIONS.find((c) => c.id === convId);
+      if (!conv) return;
+      const msg = conv.messages.find((m) => m.id === msgId);
+      if (!msg) return;
+
+      pendingDeleteTarget = { convId, msgId };
+      const preview = msg.text || (msg.attachment ? `[Archivo: ${msg.attachment.name}]` : '(Sin texto)');
+      document.getElementById('deleteMsgPreviewText').textContent = preview;
+      document.getElementById('deleteMsgPreviewMeta').textContent = `${msg.sender} — ${msg.email} — ${msg.dateDisplay} ${msg.time}`;
+      document.getElementById('deleteJustificationInput').value = '';
+      updateDeleteSubmitState();
+      openModal('deletePrivateMsgModal', 'deleteJustificationInput');
+    }
+
+    function updateDeleteSubmitState() {
+      const val = document.getElementById('deleteJustificationInput').value;
+      document.getElementById('deleteJustificationCount').textContent = `${val.length} / 250`;
+      document.getElementById('confirmDeleteMsgBtn').disabled = val.trim().length === 0;
+    }
+
+    function confirmDeletePrivateMessage() {
+      if (!pendingDeleteTarget) return;
+      const reason = document.getElementById('deleteJustificationInput').value.trim();
+      if (!reason) return;
+
+      const conv = PRIVATE_CONVERSATIONS.find((c) => c.id === pendingDeleteTarget.convId);
+      if (!conv) return;
+      const msg = conv.messages.find((m) => m.id === pendingDeleteTarget.msgId);
+      if (!msg) return;
+
+      const peerEmail = msg.sender === conv.userA ? conv.emailB : conv.emailA;
+      const auditTime = formatNowForAudit();
+      appendAuditRecord({
+        id: `aud-${Date.now()}`,
+        type: 'Privado',
+        admin: 'gustavo.reyes@salud.gob.sv',
+        sender: msg.sender,
+        senderEmail: msg.email,
+        target: peerEmail,
+        tableTarget: '',
+        message: msg.text || (msg.attachment ? msg.attachment.name : '(Adjunto)'),
+        justification: reason,
+        dateIso: auditTime.dateIso,
+        dateDisplay: auditTime.dateDisplay
+      });
+
+      conv.messages = conv.messages.filter((m) => m.id !== msg.id);
+      if (conv.totalHint > 0) conv.totalHint = Math.max(conv.messages.length, conv.totalHint - 1);
+
+      closeModal('deletePrivateMsgModal');
+      renderConversationsList();
+      renderSelectedConversation();
+      showAlert('Mensaje eliminado y registrado en el log de auditoría.', 'success');
+    }
+
+    initAdminShell({ activeNav: 'Mensajes privados', modalIds: ['deletePrivateMsgModal'] });
+    renderConversationsList();
+  </script>
+</body>
+
+</html>
