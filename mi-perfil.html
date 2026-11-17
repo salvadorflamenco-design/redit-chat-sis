@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Admin - Mi perfil</title>
+  <script>
+    document.documentElement.classList.add('no-theme-transition');
+    if (localStorage.getItem('chatAdminTheme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(() => document.documentElement.classList.remove('no-theme-transition'));
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/shared/admin-shell.css">
+  <style>
+    .otp-digit {
+      width: 2.75rem;
+      height: 3.1rem;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border-radius: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+      .otp-digit {
+        width: 3rem;
+        height: 3.35rem;
+      }
+    }
+
+    .pwd-rule-ok {
+      color: #4ade80;
+    }
+
+    html.light .pwd-rule-ok {
+      color: #16a34a;
+    }
+  </style>
+</head>
+
+<body class="min-h-full mesh-gradient text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+  <div class="relative z-10 flex min-h-screen">
+    <div id="adminSidebarMount"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <div id="adminTopbarMount"></div>
+
+      <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 max-w-[1600px] w-full mx-auto">
+        <div class="max-w-5xl space-y-5">
+          <!-- Encabezado -->
+          <div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight theme-text-primary">Mi perfil</h1>
+            <p class="mt-1 text-xs sm:text-sm font-medium theme-text-muted">
+              Administra tu identidad y la seguridad de tu cuenta
+            </p>
+          </div>
+
+          <!-- 1. Identidad para mensajes masivos -->
+          <section class="glass-card rounded-2xl p-5 sm:p-6 space-y-5">
+            <h2 class="text-sm sm:text-base font-bold theme-text-primary">Identidad para mensajes masivos</h2>
+
+            <div class="flex flex-wrap items-center gap-4">
+              <input id="profileAvatarFileInput" type="file" accept=".png,.jpg,.jpeg,.webp,.heic" class="hidden"
+                onchange="handleProfileAvatarSelected(this.files[0])" />
+
+              <div id="profileAvatarPreviewCircle"
+                class="w-16 h-16 rounded-full bg-brand-600/25 border border-brand-500/35 flex items-center justify-center overflow-hidden shrink-0 text-lg font-extrabold text-brand-400">
+                T
+              </div>
+
+              <div class="space-y-1 text-xs">
+                <p class="font-semibold theme-text-secondary">Avatar (opcional)</p>
+                <div class="flex flex-wrap items-center gap-3">
+                  <button type="button" onclick="document.getElementById('profileAvatarFileInput').click()"
+                    class="font-semibold text-brand-400 hover:underline cursor-pointer">
+                    Cambiar imagen
+                  </button>
+                  <button id="removeAvatarBtn" type="button" onclick="removeProfileAvatar()"
+                    class="hidden font-semibold text-rose-400 hover:underline cursor-pointer">
+                    Quitar imagen
+                  </button>
+                </div>
+                <p class="text-[11px] theme-text-muted">PNG, JPG, JPEG, WEBP o HEIC · Máximo 5 MB</p>
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <label for="profileAliasInput" class="block text-[11px] font-semibold theme-text-secondary">
+                Alias <span class="text-rose-400">*</span>
+              </label>
+              <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center theme-text-muted">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </span>
+                <input id="profileAliasInput" type="text" maxlength="60" oninput="handleAliasInput()"
+                  placeholder="Tu alias público"
+                  class="theme-input w-full pl-10 pr-4 py-2.5 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+              </div>
+              <div class="flex items-center justify-between gap-2 text-[11px] theme-text-muted">
+                <span>Este es el nombre que se mostrará al enviar un mensaje masivo</span>
+                <span id="profileAliasCounter" class="shrink-0">0 / 60</span>
+              </div>
+            </div>
+
+            <!-- Vista previa del remitente -->
+            <div class="theme-surface-muted rounded-xl px-4 py-3 flex items-center gap-3">
+              <div id="senderPreviewAvatarCircle"
+                class="w-9 h-9 rounded-full bg-brand-600/25 border border-brand-500/35 flex items-center justify-center overflow-hidden shrink-0 text-xs font-bold text-brand-400">
+                T
+              </div>
+              <div class="min-w-0">
+                <p class="text-[11px] theme-text-muted">Vista previa del remitente</p>
+                <p id="senderPreviewAliasText" class="text-xs sm:text-sm font-bold theme-text-primary truncate">Tester</p>
+              </div>
+            </div>
+
+            <div class="pt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p class="text-[11px] theme-text-muted">Restaurar recupera la última identidad guardada</p>
+              <div class="flex items-center gap-2.5 self-end sm:self-auto">
+                <button id="restoreIdentityBtn" type="button" onclick="restoreIdentity()" disabled
+                  class="px-4 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed">
+                  Restaurar
+                </button>
+                <button id="saveIdentityBtn" type="button" onclick="saveIdentity()" disabled
+                  class="btn-primary-gradient px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none">
+                  <span id="saveIdentityBtnText">Guardar identidad</span>
+                  <svg id="saveIdentitySpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. Contraseña -->
+          <section class="glass-card rounded-2xl p-5 sm:p-6 space-y-4">
+            <h2 class="text-sm sm:text-base font-bold theme-text-primary">Contraseña</h2>
+
+            <form onsubmit="event.preventDefault(); submitPasswordUpdate();" class="space-y-4" novalidate>
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div class="space-y-1">
+                  <label for="currentPasswordInput" class="block text-[11px] font-semibold theme-text-secondary">
+                    Contraseña actual <span class="text-rose-400">*</span>
+                  </label>
+                  <div class="relative">
+                    <input id="currentPasswordInput" type="password" oninput="evaluatePasswordRules()"
+                      autocomplete="current-password"
+                      class="theme-input w-full pl-3.5 pr-16 py-2.5 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+                    <button type="button" onclick="toggleProfilePassword('currentPasswordInput', this)"
+                      class="absolute inset-y-0 right-3 flex items-center text-[11px] font-semibold text-brand-400 hover:text-brand-300 cursor-pointer">
+                      Mostrar
+                    </button>
+                  </div>
+                </div>
+
+                <div class="space-y-1">
+                  <label for="newPasswordInput" class="block text-[11px] font-semibold theme-text-secondary">
+                    Nueva contraseña <span class="text-rose-400">*</span>
+                  </label>
+                  <div class="relative">
+                    <input id="newPasswordInput" type="password" maxlength="20" oninput="evaluatePasswordRules()"
+                      autocomplete="new-password"
+                      class="theme-input w-full pl-3.5 pr-16 py-2.5 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+                    <button type="button" onclick="toggleProfilePassword('newPasswordInput', this)"
+                      class="absolute inset-y-0 right-3 flex items-center text-[11px] font-semibold text-brand-400 hover:text-brand-300 cursor-pointer">
+                      Mostrar
+                    </button>
+                  </div>
+                </div>
+
+                <div class="space-y-1">
+                  <label for="confirmPasswordInput" class="block text-[11px] font-semibold theme-text-secondary">
+                    Repetir nueva contraseña <span class="text-rose-400">*</span>
+                  </label>
+                  <div class="relative">
+                    <input id="confirmPasswordInput" type="password" maxlength="20" oninput="evaluatePasswordRules()"
+                      autocomplete="new-password"
+                      class="theme-input w-full pl-3.5 pr-16 py-2.5 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+                    <button type="button" onclick="toggleProfilePassword('confirmPasswordInput', this)"
+                      class="absolute inset-y-0 right-3 flex items-center text-[11px] font-semibold text-brand-400 hover:text-brand-300 cursor-pointer">
+                      Mostrar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Checklist de requisitos en vivo -->
+              <div class="space-y-2">
+                <p class="text-[11px] font-bold theme-text-primary">Debe contener:</p>
+                <div id="passwordRulesList" class="flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] theme-text-muted"></div>
+              </div>
+
+              <div>
+                <button id="updatePasswordBtn" type="submit" disabled
+                  class="btn-primary-gradient px-4 py-2 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none">
+                  <span id="updatePwdBtnText">Actualizar contraseña</span>
+                  <svg id="updatePwdSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <!-- 3. Verificación en dos pasos -->
+          <section class="glass-card rounded-2xl p-5 sm:p-6 space-y-4">
+            <div class="flex items-center gap-2.5">
+              <span class="w-8 h-8 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+              </span>
+              <h2 class="text-sm sm:text-base font-bold theme-text-primary">Verificación en dos pasos</h2>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <!-- Columna métodos -->
+              <div class="lg:col-span-5 space-y-3">
+                <p class="text-xs theme-text-muted">El método actual se mantiene hasta confirmar el cambio</p>
+                <div id="twoFactorMethodButtons" class="space-y-2.5"></div>
+              </div>
+
+              <!-- Columna estado o confirmación con OTP -->
+              <div id="twoFactorRightPanel" class="lg:col-span-7"></div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="src/shared/admin-shell.js"></script>
+  <script>
+    const IDENTITY_STORAGE_KEY = 'chatAdminProfileIdentity_v1';
+    const TWO_FA_STORAGE_KEY = 'chatAdmin2faMethod_v1';
+
+    const PWD_RULE_SPECS = [
+      { id: 'length', label: 'Entre 8 y 20 caracteres', test: (pwd) => pwd.length >= 8 && pwd.length <= 20 },
+      { id: 'upper', label: '1 mayúscula', test: (pwd) => /[A-ZÁÉÍÓÚÑ]/.test(pwd) },
+      { id: 'number', label: '1 número', test: (pwd) => /[0-9]/.test(pwd) },
+      { id: 'symbol', label: "1 símbolo ñ&*'_!.^$#@-])+[{:¿¡", test: (pwd) => /[ñ&*'_!.^$#@\-)\]+[{:¿¡]/.test(pwd) },
+      { id: 'different', label: 'Distinta de la actual', test: (pwd, cur) => pwd.length > 0 && pwd !== cur },
+      { id: 'match', label: 'Las contraseñas coinciden', test: (pwd, _, confirm) => pwd.length > 0 && pwd === confirm }
+    ];
+
+    let savedIdentity = loadSavedIdentity();
+    let draftIdentity = { ...savedIdentity };
+    let current2faMethod = load2faMethod(); // 'authenticator' | 'email'
+    let pending2faTarget = null;
+    let resendTimerHandle = null;
+    let resendSecondsLeft = 0;
+
+    function loadSavedIdentity() {
+      try {
+        const raw = localStorage.getItem(IDENTITY_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return {
+            alias: typeof parsed.alias === 'string' && parsed.alias.trim() ? parsed.alias : 'Tester',
+            avatarDataUrl: typeof parsed.avatarDataUrl === 'string' ? parsed.avatarDataUrl : ''
+          };
+        }
+      } catch (e) {
+        // Fallback
+      }
+      return { alias: 'Tester', avatarDataUrl: '' };
+    }
+
+    function load2faMethod() {
+      const val = localStorage.getItem(TWO_FA_STORAGE_KEY);
+      return val === 'email' ? 'email' : 'authenticator';
+    }
+
+    function renderAvatarIntoCircle(el, dataUrl, aliasText) {
+      el.textContent = '';
+      if (dataUrl && dataUrl.startsWith('data:image/')) {
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.alt = aliasText || 'Avatar';
+        img.className = 'w-full h-full object-cover';
+        el.appendChild(img);
+      } else {
+        el.textContent = (aliasText || 'T').trim().charAt(0).toUpperCase() || 'T';
+      }
+    }
+
+    function syncIdentityUI() {
+      const alias = draftIdentity.alias;
+      const input = document.getElementById('profileAliasInput');
+      if (input.value !== alias) input.value = alias;
+
+      document.getElementById('profileAliasCounter').textContent = `${alias.length} / 60`;
+      document.getElementById('senderPreviewAliasText').textContent = alias.trim() || 'Tu alias';
+
+      renderAvatarIntoCircle(document.getElementById('profileAvatarPreviewCircle'), draftIdentity.avatarDataUrl, alias);
+      renderAvatarIntoCircle(document.getElementById('senderPreviewAvatarCircle'), draftIdentity.avatarDataUrl, alias);
+
+      document.getElementById('removeAvatarBtn').classList.toggle('hidden', !draftIdentity.avatarDataUrl);
+
+      const dirty =
+        draftIdentity.alias !== savedIdentity.alias ||
+        draftIdentity.avatarDataUrl !== savedIdentity.avatarDataUrl;
+      const valid = draftIdentity.alias.trim().length > 0;
+
+      document.getElementById('restoreIdentityBtn').disabled = !dirty;
+      document.getElementById('saveIdentityBtn').disabled = !dirty || !valid;
+    }
+
+    function handleAliasInput() {
+      draftIdentity.alias = document.getElementById('profileAliasInput').value.slice(0, 60);
+      syncIdentityUI();
+    }
+
+    function handleProfileAvatarSelected(file) {
+      if (!file) return;
+      if (!/\.(png|jpg|jpeg|webp|heic)$/i.test(file.name) && !file.type.startsWith('image/')) {
+        showAlert('Formato inválido. Usa PNG, JPG, JPEG, WEBP o HEIC.', 'error');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert('La imagen supera el máximo permitido de 5 MB.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || '');
+        if (!result.startsWith('data:image/')) {
+          showAlert('El archivo seleccionado no es una imagen válida.', 'error');
+          return;
+        }
+        draftIdentity.avatarDataUrl = result;
+        syncIdentityUI();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function removeProfileAvatar() {
+      draftIdentity.avatarDataUrl = '';
+      document.getElementById('profileAvatarFileInput').value = '';
+      syncIdentityUI();
+    }
+
+    function restoreIdentity() {
+      draftIdentity = { ...savedIdentity };
+      document.getElementById('profileAvatarFileInput').value = '';
+      syncIdentityUI();
+      showAlert('Identidad restaurada a la última versión guardada.', 'info');
+    }
+
+    function saveIdentity() {
+      const cleanAlias = draftIdentity.alias.trim();
+      if (!cleanAlias) return;
+
+      const btn = document.getElementById('saveIdentityBtn');
+      const spinner = document.getElementById('saveIdentitySpinner');
+      const text = document.getElementById('saveIdentityBtnText');
+      btn.disabled = true;
+      spinner.classList.remove('hidden');
+      text.textContent = 'Guardando...';
+
+      setTimeout(() => {
+        draftIdentity.alias = cleanAlias;
+        savedIdentity = { ...draftIdentity };
+        try {
+          localStorage.setItem(IDENTITY_STORAGE_KEY, JSON.stringify(savedIdentity));
+        } catch (e) {
+          // Ignorar en modo privado
+        }
+        spinner.classList.add('hidden');
+        text.textContent = 'Guardar identidad';
+        syncIdentityUI();
+        showAlert('Identidad guardada', 'success');
+      }, 280);
+    }
+
+    function toggleProfilePassword(inputId, btn) {
+      const input = document.getElementById(inputId);
+      const hidden = input.type === 'password';
+      input.type = hidden ? 'text' : 'password';
+      btn.textContent = hidden ? 'Ocultar' : 'Mostrar';
+    }
+
+    function evaluatePasswordRules() {
+      const current = document.getElementById('currentPasswordInput').value;
+      const nextPwd = document.getElementById('newPasswordInput').value;
+      const confirm = document.getElementById('confirmPasswordInput').value;
+
+      const listEl = document.getElementById('passwordRulesList');
+      let allRulesPass = true;
+
+      listEl.innerHTML = PWD_RULE_SPECS.map((rule) => {
+        const passed = rule.test(nextPwd, current, confirm);
+        if (!passed) allRulesPass = false;
+        const iconHtml = passed
+          ? '<svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clip-rule="evenodd"/></svg>'
+          : '<svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg>';
+
+        return `
+          <span class="inline-flex items-center gap-1.5 ${passed ? 'pwd-rule-ok font-semibold' : ''}">
+            ${iconHtml}
+            <span>${escapeHtml(rule.label)}</span>
+          </span>`;
+      }).join('');
+
+      document.getElementById('updatePasswordBtn').disabled = !(current.length > 0 && allRulesPass);
+      return current.length > 0 && allRulesPass;
+    }
+
+    function submitPasswordUpdate() {
+      if (!evaluatePasswordRules()) {
+        showAlert('Verifica la contraseña actual y todos los requisitos de seguridad.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('updatePasswordBtn');
+      const text = document.getElementById('updatePwdBtnText');
+      const spinner = document.getElementById('updatePwdSpinner');
+      btn.disabled = true;
+      text.textContent = 'Actualizando...';
+      spinner.classList.remove('hidden');
+
+      setTimeout(() => {
+        document.getElementById('currentPasswordInput').value = '';
+        document.getElementById('newPasswordInput').value = '';
+        document.getElementById('confirmPasswordInput').value = '';
+        text.textContent = 'Actualizar contraseña';
+        spinner.classList.add('hidden');
+        evaluatePasswordRules();
+        showAlert('Contraseña actualizada', 'success');
+      }, 320);
+    }
+
+    function startResendTimer(seconds = 60) {
+      if (resendTimerHandle) clearInterval(resendTimerHandle);
+      resendSecondsLeft = seconds;
+      updateResendTimerText();
+      resendTimerHandle = setInterval(() => {
+        resendSecondsLeft--;
+        updateResendTimerText();
+        if (resendSecondsLeft <= 0) {
+          clearInterval(resendTimerHandle);
+          resendTimerHandle = null;
+        }
+      }, 1000);
+    }
+
+    function updateResendTimerText() {
+      const el = document.getElementById('resend2faLink');
+      if (!el) return;
+      if (resendSecondsLeft > 0) {
+        el.textContent = `Reenviar código en ${resendSecondsLeft} s`;
+        el.disabled = true;
+      } else {
+        el.textContent = 'Reenviar código';
+        el.disabled = false;
+      }
+    }
+
+    function triggerResend2faCode() {
+      if (resendSecondsLeft > 0) return;
+      startResendTimer(60);
+      showAlert('Nuevo código de verificación enviado a gustavo.reyes@salud.gob.sv', 'info');
+    }
+
+    function initiate2faSwitch(targetMethod) {
+      if (targetMethod === current2faMethod) return;
+      pending2faTarget = targetMethod;
+      render2faSection();
+      if (targetMethod === 'email') startResendTimer(58);
+      setTimeout(() => {
+        const firstBox = document.querySelector('#profileOtpRow input');
+        if (firstBox) firstBox.focus();
+      }, 40);
+    }
+
+    function cancel2faSwitch() {
+      pending2faTarget = null;
+      if (resendTimerHandle) {
+        clearInterval(resendTimerHandle);
+        resendTimerHandle = null;
+      }
+      render2faSection();
+    }
+
+    function getOtpCodeFromRow(containerSelector) {
+      const inputs = Array.from(document.querySelectorAll(`${containerSelector} input`));
+      return inputs.map((i) => i.value.trim()).join('');
+    }
+
+    function wireOtpRowBehavior(containerSelector, submitBtnId) {
+      const inputs = Array.from(document.querySelectorAll(`${containerSelector} input`));
+      const syncBtn = () => {
+        const btn = document.getElementById(submitBtnId);
+        if (btn) btn.disabled = getOtpCodeFromRow(containerSelector).length !== 6;
+      };
+
+      inputs.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+          const digits = e.target.value.replace(/\D/g, '');
+          e.target.value = digits.slice(-1);
+          if (e.target.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+          syncBtn();
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !input.value && idx > 0) {
+            inputs[idx - 1].focus();
+          }
+        });
+
+        input.addEventListener('paste', (e) => {
+          const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+          if (!text) return;
+          e.preventDefault();
+          text.split('').forEach((ch, offset) => {
+            if (inputs[offset]) inputs[offset].value = ch;
+          });
+          const focusIndex = Math.min(text.length, inputs.length - 1);
+          inputs[focusIndex].focus();
+          syncBtn();
+        });
+      });
+
+      syncBtn();
+    }
+
+    function confirm2faSwitch() {
+      if (!pending2faTarget || getOtpCodeFromRow('#profileOtpRow').length !== 6) return;
+      current2faMethod = pending2faTarget;
+      localStorage.setItem(TWO_FA_STORAGE_KEY, current2faMethod);
+      const label = current2faMethod === 'email' ? 'Correo electrónico' : 'Google Authenticator';
+      cancel2faSwitch();
+      showAlert(`Verificación en dos pasos actualizada a ${label}.`, 'success');
+    }
+
+    function render2faSection() {
+      const methodsContainer = document.getElementById('twoFactorMethodButtons');
+      const isEmailActive = current2faMethod === 'email';
+
+      const emailBtn = isEmailActive
+        ? `<div class="flex items-center gap-2">
+             <button type="button" disabled class="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold theme-btn-subtle opacity-60 flex items-center gap-2.5 cursor-not-allowed">
+               <span>✉️</span><span>Correo electrónico</span>
+             </button>
+             <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold theme-surface-muted">Actual</span>
+           </div>`
+        : `<button type="button" onclick="initiate2faSwitch('email')"
+             class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all cursor-pointer ${pending2faTarget === 'email' ? 'btn-primary-gradient' : 'theme-btn-subtle border border-brand-500/40 text-brand-400'}">
+             <span>✉️</span><span>Correo electrónico</span>
+           </button>`;
+
+      const authBtn = !isEmailActive
+        ? `<div class="flex items-center gap-2">
+             <button type="button" disabled class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-semibold theme-btn-subtle opacity-60 flex items-center gap-2.5 cursor-not-allowed">
+               <span>🔐</span><span>Google Authenticator</span>
+             </button>
+             <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold theme-surface-muted">Actual</span>
+           </div>`
+        : `<button type="button" onclick="initiate2faSwitch('authenticator')"
+             class="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all cursor-pointer ${pending2faTarget === 'authenticator' ? 'btn-primary-gradient' : 'theme-btn-subtle border border-brand-500/40 text-brand-400'}">
+             <span>🔐</span><span>Google Authenticator</span>
+           </button>`;
+
+      methodsContainer.innerHTML = `${emailBtn}${authBtn}`;
+
+      const rightPanel = document.getElementById('twoFactorRightPanel');
+      if (!pending2faTarget) {
+        const methodName = isEmailActive ? 'Correo electrónico' : 'Google Authenticator';
+        rightPanel.innerHTML = `
+          <div class="rounded-xl px-4 py-3.5 border border-emerald-500/30 bg-emerald-500/10 flex items-start gap-3">
+            <span class="text-emerald-400 mt-0.5 shrink-0">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </span>
+            <div>
+              <p class="text-xs font-bold text-emerald-400">Usas ${escapeHtml(methodName)}</p>
+              <p class="text-[11px] theme-text-secondary mt-0.5">Para cambiarlo elige otro método y confírmalo con un código</p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const targetTitle = pending2faTarget === 'email' ? 'Correo electrónico' : 'Google Authenticator';
+      const subtitle = pending2faTarget === 'email'
+        ? 'Enviamos un código de 6 dígitos a gustavo.reyes@salud.gob.sv. Vence en 15 min'
+        : 'Escanea el código en Google Authenticator e ingresa el código de 6 dígitos generado por la app';
+
+      const qrHint = pending2faTarget === 'authenticator'
+        ? `<div class="theme-surface-muted rounded-xl p-3 flex items-center gap-3 text-[11px] theme-text-secondary">
+             <div class="w-12 h-12 rounded-lg bg-white p-1.5 shrink-0 grid grid-cols-3 gap-0.5">
+               <span class="bg-slate-900"></span><span class="bg-transparent"></span><span class="bg-slate-900"></span>
+               <span class="bg-transparent"></span><span class="bg-slate-900"></span><span class="bg-slate-900"></span>
+               <span class="bg-slate-900"></span><span class="bg-slate-900"></span><span class="bg-transparent"></span>
+             </div>
+             <span>App autenticadora: <strong>Chat SIS (gustavo.reyes@salud.gob.sv)</strong></span>
+           </div>`
+        : '';
+
+      const resendHtml = pending2faTarget === 'email'
+        ? `<button id="resend2faLink" type="button" onclick="triggerResend2faCode()"
+             class="text-[11px] font-medium text-brand-400 hover:underline disabled:opacity-60 cursor-pointer disabled:cursor-default">
+             Reenviar código en 58 s
+           </button>`
+        : '';
+
+      rightPanel.innerHTML = `
+        <div class="space-y-3">
+          <div>
+            <p class="text-xs sm:text-sm font-bold theme-text-primary">Confirma el cambio a ${escapeHtml(targetTitle)}</p>
+            <p class="text-[11px] theme-text-muted mt-0.5">${escapeHtml(subtitle)}</p>
+          </div>
+          ${qrHint}
+          <div class="space-y-1.5">
+            <label class="block text-[11px] font-semibold theme-text-secondary">
+              Código de verificación <span class="text-rose-400">*</span>
+            </label>
+            <div id="profileOtpRow" class="flex items-center gap-2">
+              ${Array.from({ length: 6 }, (_, i) => `
+                <input type="text" inputmode="numeric" maxlength="1" aria-label="Dígito ${i + 1}"
+                  class="otp-digit theme-input focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+              `).join('')}
+            </div>
+            ${resendHtml}
+          </div>
+          <div class="flex items-center gap-2.5 pt-1">
+            <button type="button" onclick="cancel2faSwitch()"
+              class="px-4 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all cursor-pointer">
+              Cancelar
+            </button>
+            <button id="confirm2faSwitchBtn" type="button" onclick="confirm2faSwitch()" disabled
+              class="btn-primary-gradient px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none">
+              Confirmar cambio
+            </button>
+          </div>
+        </div>`;
+
+      wireOtpRowBehavior('#profileOtpRow', 'confirm2faSwitchBtn');
+    }
+
+    initAdminShell({ activeNav: 'Mi perfil' });
+    syncIdentityUI();
+    evaluatePasswordRules();
+    render2faSection();
+  </script>
+</body>
+
+</html>

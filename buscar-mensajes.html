@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Admin - Buscar mensajes</title>
+  <script>
+    document.documentElement.classList.add('no-theme-transition');
+    if (localStorage.getItem('chatAdminTheme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(() => document.documentElement.classList.remove('no-theme-transition'));
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/shared/admin-shell.css">
+</head>
+
+<body class="min-h-full mesh-gradient text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+  <div class="relative z-10 flex min-h-screen">
+    <div id="adminSidebarMount"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <div id="adminTopbarMount"></div>
+
+      <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-5 max-w-[1600px] w-full mx-auto">
+        <!-- Encabezado -->
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight theme-text-primary">Buscador de mensajes</h1>
+          <p class="mt-1 text-xs sm:text-sm font-medium theme-text-muted">
+            Busca mensajes por texto y/o rango de fechas
+          </p>
+        </div>
+
+        <!-- Formulario de búsqueda -->
+        <section class="glass-card rounded-2xl p-5 space-y-4">
+          <div class="space-y-1.5">
+            <p class="text-[11px] font-medium theme-text-muted">Tipo de mensaje</p>
+            <div class="inline-flex items-center rounded-xl p-1 theme-pill-group gap-1">
+              <button id="typeBtn-grupales" type="button" onclick="setMessageScope('grupales')"
+                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer btn-primary-gradient">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Grupales</span>
+              </button>
+              <button id="typeBtn-privados" type="button" onclick="setMessageScope('privados')"
+                class="px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer theme-text-muted">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span>Privados</span>
+              </button>
+            </div>
+          </div>
+
+          <form onsubmit="event.preventDefault(); executeSearch();" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div class="md:col-span-4 space-y-1">
+              <label for="searchQueryInput" class="block text-[11px] font-medium theme-text-muted">Buscar por texto</label>
+              <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center theme-text-muted">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <input id="searchQueryInput" type="text" placeholder="Ej: urgente, reunión, informe..."
+                  class="theme-input w-full pl-10 pr-4 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+              </div>
+            </div>
+
+            <div class="md:col-span-3 space-y-1">
+              <label for="searchFromDate" class="block text-[11px] font-medium theme-text-muted">Desde</label>
+              <input id="searchFromDate" type="date" onchange="syncQuickDatesBadge()"
+                class="theme-input w-full px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500" />
+            </div>
+
+            <div class="md:col-span-3 space-y-1">
+              <label for="searchToDate" class="block text-[11px] font-medium theme-text-muted">Hasta</label>
+              <input id="searchToDate" type="date" onchange="syncQuickDatesBadge()"
+                class="theme-input w-full px-3 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500" />
+            </div>
+
+            <div class="md:col-span-2 flex items-center gap-2">
+              <button type="submit"
+                class="btn-primary-gradient flex-1 px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <span>Buscar</span>
+              </button>
+              <button type="button" onclick="resetSearch()"
+                class="px-3.5 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all flex items-center justify-center gap-1.5 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Limpiar</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Filtros rápidos de fecha -->
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <span class="text-[11px] font-medium theme-text-muted">Rápido:</span>
+            <button type="button" onclick="applyQuickDateRange('today')"
+              class="quick-pill px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer">Hoy</button>
+            <button type="button" onclick="applyQuickDateRange('yesterday')"
+              class="quick-pill px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer">Ayer</button>
+            <button type="button" onclick="applyQuickDateRange('week')"
+              class="quick-pill px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer">Última semana</button>
+            <button type="button" onclick="applyQuickDateRange('month')"
+              class="quick-pill px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer">Último mes</button>
+            <button id="clearDatesPill" type="button" onclick="clearDateFields()"
+              class="hidden quick-pill-danger px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all cursor-pointer">
+              × Limpiar fechas
+            </button>
+          </div>
+        </section>
+
+        <!-- Área de resultados -->
+        <section id="resultsSection"></section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal eliminar mensaje -->
+  <div id="deleteSearchMsgModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4"
+    onclick="handleModalBackdropClick(event, 'deleteSearchMsgModal')">
+    <div class="glass-card rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+      <div class="modal-header-danger-soft px-5 py-3.5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <h3 class="text-sm sm:text-base font-bold">Eliminar mensaje</h3>
+        </div>
+        <button type="button" onclick="closeModal('deleteSearchMsgModal')"
+          class="text-white/85 hover:text-white text-xl leading-none cursor-pointer" aria-label="Cerrar">×</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <div class="delete-warning-box rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 text-xs font-medium">
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span>Esta acción quedará registrada en el log de auditoría.</span>
+        </div>
+
+        <div class="theme-surface-muted rounded-xl p-3.5 space-y-1 text-xs">
+          <p class="text-[11px] font-medium theme-text-muted">Mensaje a eliminar:</p>
+          <p id="deleteSearchMsgText" class="font-semibold theme-text-primary break-words"></p>
+          <p id="deleteSearchMsgMeta" class="text-[11px] theme-text-muted"></p>
+        </div>
+
+        <div class="space-y-1">
+          <label for="deleteSearchJustification" class="block text-[11px] font-semibold theme-text-secondary">
+            Justificación (obligatoria)
+          </label>
+          <textarea id="deleteSearchJustification" rows="3" maxlength="250" oninput="updateDeleteSearchState()"
+            placeholder="Indica el motivo de eliminación..."
+            class="theme-input w-full px-3.5 py-2.5 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 resize-y"></textarea>
+          <div class="flex justify-end">
+            <span id="deleteSearchCharCount" class="text-[11px] theme-text-muted">0 / 250</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-3.5 border-t theme-border flex items-center justify-end gap-2.5">
+        <button type="button" onclick="closeModal('deleteSearchMsgModal')"
+          class="px-4 py-2 rounded-xl text-xs font-semibold theme-text-muted hover:text-brand-400 transition-colors cursor-pointer">
+          Cancelar
+        </button>
+        <button id="confirmDeleteSearchBtn" type="button" onclick="confirmDeleteSearchResult()" disabled
+          class="btn-danger-soft px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <span>Eliminar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/shared/admin-shell.js"></script>
+  <script>
+    const GROUP_SEARCH_MESSAGES = buildSearchDataset();
+    const PRIVATE_SEARCH_MESSAGES = [
+      { id: 'sp-1', scope: 'privados', sender: 'LISSETTE ROSALES LOPEZ', email: 'lrosales@salud.gob.sv', context: 'ALEXANDER MICHAEL ROMERO VASQUEZ', text: 'Hola', dateIso: '2026-11-10', dateDisplay: '10/11/2026 08:18 a. m.' },
+      { id: 'sp-2', scope: 'privados', sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'azepeda@salud.gob.sv', context: 'ANA MERCEDES AYALA DE RAMIREZ', text: 'Ya quedó enviado el informe de guardia urgente.', dateIso: '2026-11-16', dateDisplay: '16/11/2026 09:47 a. m.' },
+      { id: 'sp-3', scope: 'privados', sender: 'ANA MERCEDES AYALA DE RAMIREZ', email: 'aayala@salud.gob.sv', context: 'EDUARDO EDGARDO LOPEZ GONZALEZ', text: 'Confirmamos la reunión clínica a las 2:00 p. m.', dateIso: '2026-11-12', dateDisplay: '12/11/2026 01:30 p. m.' }
+    ];
+
+    function buildSearchDataset() {
+      const baseEntries = [
+        { sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'sin-correo.01059605-3@sin-correo.local', room: 'Hospital ISSS Policlínico Roma', text: '2222', dateIso: '2026-11-16', dateDisplay: '16/11/2026 09:37 a. m.' },
+        { sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'sin-correo.01059605-3@sin-correo.local', room: 'Hospital ISSS Policlínico Roma', text: 'vvvvv', dateIso: '2026-11-16', dateDisplay: '16/11/2026 09:35 a. m.' },
+        { sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'sin-correo.01059605-3@sin-correo.local', room: 'Hospital ISSS Policlínico Roma', text: 'hhhhh', dateIso: '2026-11-12', dateDisplay: '12/11/2026 03:21 p. m.' },
+        { sender: 'ALEJANDRO JOSE ZEPEDA GARCIA', email: 'sin-correo.01059605-3@sin-correo.local', room: 'Hospital ISSS Policlínico Roma', text: 'hh', dateIso: '2026-11-12', dateDisplay: '12/11/2026 03:18 p. m.' },
+        { sender: 'ADELA YANIRA CASTRO DE RAMIREZ', email: 'acastro@salud.gob.sv', room: 'Hospital ISSS Policlínico Roma', text: 'Se compartió el informe diario actualizado.', dateIso: '2026-11-11', dateDisplay: '11/11/2026 02:14 p. m.' },
+        { sender: 'EDUARDO EDGARDO LOPEZ GONZALEZ', email: 'elopez@salud.gob.sv', room: 'Hospital ISSS Policlínico Roma', text: 'Favor atender paciente urgente en área de triaje.', dateIso: '2026-11-10', dateDisplay: '10/11/2026 11:05 a. m.' },
+        { sender: 'ANA MERCEDES AYALA DE RAMIREZ', email: 'aayala@salud.gob.sv', room: 'Hospital ISSS Policlínico Roma', text: 'Se reprograma reunión de coordinación para las 3 p. m.', dateIso: '2026-11-09', dateDisplay: '09/11/2026 10:22 a. m.' },
+        { sender: 'LISSETTE ROSALES LOPEZ', email: 'lrosales@salud.gob.sv', room: 'Hospital ISSS Policlínico Roma', text: 'Confirmado ingreso de laboratorio.', dateIso: '2026-11-08', dateDisplay: '08/11/2026 04:40 p. m.' },
+        { sender: 'ALEXANDER MICHAEL ROMERO VASQUEZ', email: 'aromero@salud.gob.sv', room: 'Hospital ISSS Policlínico Roma', text: 'Se deja actualizado el proyecto y los documentos de referencia.', dateIso: '2026-11-07', dateDisplay: '07/11/2026 02:08 p. m.' },
+        { sender: 'ADRIANA MICHELLE FLORES POSADA', email: 'aflores@salud.gob.sv', room: 'Hospital ISSS Policlínico Roma', text: 'Pendiente firma de alta médica.', dateIso: '2026-11-06', dateDisplay: '06/11/2026 05:12 p. m.' },
+        { sender: 'ALAN DONALDO ALAS VASQUEZ', email: 'aalas@salud.gob.sv', room: 'Hospital Nacional Ahuachapán AH "Dr. Francisco Menéndez"', text: '@ANA ISABEL ALVAREZ DE SANDOVAL hola', dateIso: '2026-11-04', dateDisplay: '04/11/2026 11:22 a. m.' },
+        { sender: 'ALAN DONALDO ALAS VASQUEZ', email: 'aalas@salud.gob.sv', room: 'Hospital Nacional Ahuachapán AH "Dr. Francisco Menéndez"', text: 'buenos dias', dateIso: '2026-11-04', dateDisplay: '04/11/2026 11:07 a. m.' },
+        { sender: 'ALAN DONALDO ALAS VASQUEZ', email: 'aalas@salud.gob.sv', room: 'Hospital Nacional Ahuachapán AH "Dr. Francisco Menéndez"', text: 'buenos dias dr', dateIso: '2026-11-04', dateDisplay: '04/11/2026 10:18 a. m.' },
+        { sender: 'ALAN DONALDO ALAS VASQUEZ', email: 'aalas@salud.gob.sv', room: 'Sala general', text: 'buenas tardes estimados doctores especialistas', dateIso: '2026-11-04', dateDisplay: '04/11/2026 09:50 a. m.' }
+      ];
+
+      const list = [];
+      for (let i = 0; i < 48; i++) {
+        const template = baseEntries[i % baseEntries.length];
+        list.push({
+          id: `sg-${i + 1}`,
+          scope: 'grupales',
+          sender: template.sender,
+          email: template.email,
+          context: template.room,
+          text: i < baseEntries.length ? template.text : `${template.text} (ref. #${i + 1})`,
+          dateIso: template.dateIso,
+          dateDisplay: template.dateDisplay
+        });
+      }
+      return list;
+    }
+
+    let messageScope = 'grupales';
+    let hasSearched = false;
+    let searchPage = 1;
+    const SEARCH_PAGE_SIZE = 10;
+    let totalSearchPages = 1;
+    let pendingDeleteId = null;
+
+    function setMessageScope(scope) {
+      messageScope = scope;
+      const gBtn = document.getElementById('typeBtn-grupales');
+      const pBtn = document.getElementById('typeBtn-privados');
+      if (scope === 'grupales') {
+        gBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer btn-primary-gradient';
+        pBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer theme-text-muted';
+      } else {
+        pBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer btn-primary-gradient';
+        gBtn.className = 'px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer theme-text-muted';
+      }
+      if (hasSearched) {
+        searchPage = 1;
+        renderSearchResults();
+      }
+    }
+
+    function syncQuickDatesBadge() {
+      const from = document.getElementById('searchFromDate').value;
+      const to = document.getElementById('searchToDate').value;
+      document.getElementById('clearDatesPill').classList.toggle('hidden', !from && !to);
+    }
+
+    function applyQuickDateRange(range) {
+      const todayIso = '2026-11-17';
+      let from = todayIso;
+      let to = todayIso;
+      if (range === 'yesterday') {
+        from = '2026-11-16';
+        to = '2026-11-16';
+      } else if (range === 'week') {
+        from = '2026-11-10';
+      } else if (range === 'month') {
+        from = '2026-10-17';
+      }
+      document.getElementById('searchFromDate').value = from;
+      document.getElementById('searchToDate').value = to;
+      syncQuickDatesBadge();
+      executeSearch();
+    }
+
+    function clearDateFields() {
+      document.getElementById('searchFromDate').value = '';
+      document.getElementById('searchToDate').value = '';
+      syncQuickDatesBadge();
+      if (hasSearched && !document.getElementById('searchQueryInput').value.trim()) {
+        hasSearched = false;
+        renderSearchResults();
+      } else if (hasSearched) {
+        executeSearch();
+      }
+    }
+
+    function resetSearch() {
+      document.getElementById('searchQueryInput').value = '';
+      document.getElementById('searchFromDate').value = '';
+      document.getElementById('searchToDate').value = '';
+      syncQuickDatesBadge();
+      hasSearched = false;
+      searchPage = 1;
+      renderSearchResults();
+    }
+
+    function executeSearch() {
+      const query = document.getElementById('searchQueryInput').value.trim();
+      const from = document.getElementById('searchFromDate').value;
+      const to = document.getElementById('searchToDate').value;
+      if (!query && !from && !to) {
+        showAlert('Ingresa un texto o selecciona un rango de fechas para buscar.', 'info');
+        return;
+      }
+      hasSearched = true;
+      searchPage = 1;
+      renderSearchResults();
+    }
+
+    function getMatchingMessages() {
+      const dataset = messageScope === 'grupales' ? GROUP_SEARCH_MESSAGES : PRIVATE_SEARCH_MESSAGES;
+      const q = document.getElementById('searchQueryInput').value.trim().toLowerCase();
+      const from = document.getElementById('searchFromDate').value;
+      const to = document.getElementById('searchToDate').value;
+
+      return dataset.filter((m) => {
+        const matchesText = !q ||
+          m.text.toLowerCase().includes(q) ||
+          m.sender.toLowerCase().includes(q) ||
+          m.context.toLowerCase().includes(q);
+        const matchesFrom = !from || m.dateIso >= from;
+        const matchesTo = !to || m.dateIso <= to;
+        return matchesText && matchesFrom && matchesTo;
+      });
+    }
+
+    function buildPageButtons(current, total) {
+      if (total <= 7) return Array.from({ length: total }, (_, idx) => idx + 1);
+      const pages = [1];
+      if (current > 3) pages.push('...');
+      for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
+        pages.push(p);
+      }
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
+      return pages;
+    }
+
+    function renderSearchResults() {
+      const container = document.getElementById('resultsSection');
+
+      if (!hasSearched) {
+        container.innerHTML = `
+          <div class="py-16 text-center text-xs sm:text-sm theme-text-muted">
+            Ingresa un texto o selecciona un rango de fechas para buscar
+          </div>`;
+        return;
+      }
+
+      const matches = getMatchingMessages();
+      if (matches.length === 0) {
+        container.innerHTML = `
+          <div class="glass-card rounded-2xl p-6 space-y-6">
+            <div class="flex items-center gap-2.5">
+              <span class="text-brand-400">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+                </svg>
+              </span>
+              <h2 class="text-sm font-bold theme-text-primary">Resultados</h2>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold badge-info-soft">0 mensaje(s)</span>
+            </div>
+            <div class="py-10 flex flex-col items-center justify-center text-center gap-3">
+              <svg class="w-10 h-10 theme-text-muted opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <p class="text-xs font-medium theme-text-muted">No se encontraron mensajes con esos criterios</p>
+              <button type="button" onclick="resetSearch()"
+                class="px-4 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all cursor-pointer">
+                Limpiar filtros
+              </button>
+            </div>
+          </div>`;
+        return;
+      }
+
+      totalSearchPages = Math.max(1, Math.ceil(matches.length / SEARCH_PAGE_SIZE));
+      if (searchPage > totalSearchPages) searchPage = totalSearchPages;
+      const startIndex = (searchPage - 1) * SEARCH_PAGE_SIZE;
+      const pageItems = matches.slice(startIndex, startIndex + SEARCH_PAGE_SIZE);
+
+      const rowsHtml = pageItems.map((m) => {
+        const initial = m.sender.charAt(0).toUpperCase();
+        const contextPill = messageScope === 'grupales'
+          ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold badge-info-soft">👥 ${escapeHtml(m.context)}</span>`
+          : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold badge-private-soft">→ ${escapeHtml(m.context)}</span>`;
+
+        return `
+          <div class="px-5 py-4 flex items-start justify-between gap-4 table-row-hover transition-colors">
+            <div class="flex items-start gap-3.5 min-w-0">
+              <span class="w-8 h-8 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-1">
+                ${escapeHtml(initial)}
+              </span>
+              <div class="min-w-0 space-y-1">
+                <p class="text-xs font-bold theme-text-primary">${escapeHtml(m.sender)}</p>
+                <p class="text-[11px] theme-text-muted">${escapeHtml(m.email)}</p>
+                <div>${contextPill}</div>
+                <p class="text-xs sm:text-sm theme-text-primary pt-0.5 break-words">${escapeHtml(m.text)}</p>
+                <p class="text-[11px] theme-text-muted flex items-center gap-1 pt-0.5">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>${escapeHtml(m.dateDisplay)}</span>
+                </p>
+              </div>
+            </div>
+
+            <button type="button" onclick="openDeleteSearchModal('${m.id}')" title="Eliminar mensaje" aria-label="Eliminar mensaje"
+              class="p-2 rounded-lg btn-trash-soft transition-colors shrink-0 cursor-pointer">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      const pages = buildPageButtons(searchPage, totalSearchPages);
+      const paginationHtml = `
+        <div class="px-5 py-3.5 border-t theme-border flex items-center justify-center gap-1.5 text-xs">
+          <button type="button" onclick="goToSearchPage(${searchPage - 1})" ${searchPage <= 1 ? 'disabled' : ''}
+            class="px-2.5 py-1.5 rounded-lg page-btn cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed">&lt;</button>
+          ${pages.map((p) => p === '...'
+            ? '<span class="px-2 theme-text-muted">…</span>'
+            : `<button type="button" onclick="goToSearchPage(${p})" class="px-3 py-1.5 rounded-lg page-btn ${p === searchPage ? 'page-active' : ''} cursor-pointer">${p}</button>`
+          ).join('')}
+          <button type="button" onclick="goToSearchPage(${searchPage + 1})" ${searchPage >= totalSearchPages ? 'disabled' : ''}
+            class="px-2.5 py-1.5 rounded-lg page-btn cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed">&gt;</button>
+        </div>
+      `;
+
+      container.innerHTML = `
+        <div class="glass-card rounded-2xl overflow-hidden">
+          <div class="px-5 py-4 border-b theme-border flex items-center gap-2.5">
+            <span class="text-brand-400">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+              </svg>
+            </span>
+            <h2 class="text-sm font-bold theme-text-primary">Resultados</h2>
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold badge-info-soft">${matches.length} mensaje(s)</span>
+          </div>
+          <div class="divide-y theme-border">${rowsHtml}</div>
+          ${totalSearchPages > 1 ? paginationHtml : ''}
+        </div>
+      `;
+    }
+
+    function goToSearchPage(page) {
+      searchPage = Math.min(Math.max(1, page), totalSearchPages);
+      renderSearchResults();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function openDeleteSearchModal(msgId) {
+      const dataset = messageScope === 'grupales' ? GROUP_SEARCH_MESSAGES : PRIVATE_SEARCH_MESSAGES;
+      const msg = dataset.find((m) => m.id === msgId);
+      if (!msg) return;
+      pendingDeleteId = msgId;
+      document.getElementById('deleteSearchMsgText').textContent = msg.text;
+      document.getElementById('deleteSearchMsgMeta').textContent = `${msg.sender} — ${msg.email} — ${msg.dateDisplay}`;
+      document.getElementById('deleteSearchJustification').value = '';
+      updateDeleteSearchState();
+      openModal('deleteSearchMsgModal', 'deleteSearchJustification');
+    }
+
+    function updateDeleteSearchState() {
+      const val = document.getElementById('deleteSearchJustification').value;
+      document.getElementById('deleteSearchCharCount').textContent = `${val.length} / 250`;
+      document.getElementById('confirmDeleteSearchBtn').disabled = val.trim().length === 0;
+    }
+
+    function confirmDeleteSearchResult() {
+      if (!pendingDeleteId) return;
+      const reason = document.getElementById('deleteSearchJustification').value.trim();
+      if (!reason) return;
+
+      const dataset = messageScope === 'grupales' ? GROUP_SEARCH_MESSAGES : PRIVATE_SEARCH_MESSAGES;
+      const idx = dataset.findIndex((m) => m.id === pendingDeleteId);
+      if (idx === -1) return;
+
+      const removed = dataset[idx];
+      const auditTime = formatNowForAudit();
+      appendAuditRecord({
+        id: `aud-${Date.now()}`,
+        type: messageScope === 'grupales' ? 'Grupal' : 'Privado',
+        admin: 'gustavo.reyes@salud.gob.sv',
+        sender: removed.sender,
+        senderEmail: removed.email,
+        target: removed.context,
+        tableTarget: messageScope === 'grupales' ? removed.context : '',
+        message: removed.text,
+        justification: reason,
+        dateIso: auditTime.dateIso,
+        dateDisplay: auditTime.dateDisplay
+      });
+
+      dataset.splice(idx, 1);
+      pendingDeleteId = null;
+      closeModal('deleteSearchMsgModal');
+      renderSearchResults();
+      showAlert('Mensaje eliminado y registrado en el log de auditoría.', 'success');
+    }
+
+    initAdminShell({ activeNav: 'Buscar mensajes', modalIds: ['deleteSearchMsgModal'] });
+    renderSearchResults();
+  </script>
+</body>
+
+</html>

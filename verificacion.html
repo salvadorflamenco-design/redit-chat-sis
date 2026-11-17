@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Admin - Verificación en dos pasos</title>
+  <script>
+    document.documentElement.classList.add('no-theme-transition');
+    if (localStorage.getItem('chatAdminTheme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(() => document.documentElement.classList.remove('no-theme-transition'));
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/shared/admin-shell.css">
+  <style>
+    .otp-digit-lg {
+      width: 2.8rem;
+      height: 3.4rem;
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 700;
+      border-radius: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+      .otp-digit-lg {
+        width: 3.4rem;
+        height: 3.8rem;
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-full mesh-gradient text-slate-100 font-sans antialiased flex flex-col selection:bg-brand-500 selection:text-white">
+  <div id="alertContainer" class="app-alert-container" aria-live="polite"></div>
+
+  <div class="fixed inset-0 pointer-events-none overflow-hidden ambient-orb">
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-brand-600/20 rounded-full blur-3xl animate-glow-pulse"></div>
+    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl animate-glow-pulse" style="animation-delay: 2s;"></div>
+  </div>
+
+  <!-- Topbar de autenticación 2FA -->
+  <header class="glass-topbar sticky top-0 z-20 px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <svg class="w-7 h-7" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#1d6fe9" d="M12 3C6.477 3 2 6.8 2 11.5c0 2.8 1.5 5.3 4 6.8L4.5 21l4.2-1.7c1 .3 2.1.5 3.3.5 5.523 0 10-3.8 10-8.3S17.523 3 12 3Z"></path>
+        <circle cx="8" cy="11.5" r="1" fill="white"></circle>
+        <circle cx="12" cy="11.5" r="1" fill="white"></circle>
+        <circle cx="16" cy="11.5" r="1" fill="white"></circle>
+      </svg>
+      <span class="text-base sm:text-lg font-extrabold tracking-tight theme-text-primary">
+        Chat <span id="brandGradientText" class="bg-gradient-to-r from-brand-400 via-cyan-300 to-brand-200 bg-clip-text text-transparent">Admin</span>
+      </span>
+    </div>
+
+    <button id="themeToggle" type="button"
+      class="px-3 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 hover:text-white border border-slate-700/60 shadow-lg backdrop-blur-md flex items-center gap-2 text-xs font-medium cursor-pointer">
+      <span id="themeIcon">☀️</span>
+      <span id="themeText">Modo Claro</span>
+    </button>
+  </header>
+
+  <main class="relative z-10 flex-1 px-4 sm:px-6 lg:px-8 py-8 max-w-5xl w-full mx-auto space-y-6">
+    <!-- Título + Cancelar / Verificar -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight theme-text-primary">Verificación en dos pasos</h1>
+        <p id="twoFactorSubtitle" class="mt-1 text-xs sm:text-sm font-medium theme-text-muted">
+          Ingresa el código de 6 dígitos que muestra Google Authenticator
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2.5 self-start sm:self-auto">
+        <a href="index.html"
+          class="px-4 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all inline-flex items-center gap-1.5 cursor-pointer">
+          <span>×</span>
+          <span>Cancelar</span>
+        </a>
+        <button id="verify2faBtn" type="button" onclick="verifyTwoFactorCode()" disabled
+          class="btn-primary-gradient px-4 py-2 rounded-xl text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed disabled:shadow-none">
+          <span id="verifyBtnIcon">✓</span>
+          <span id="verifyBtnText">Verificar</span>
+          <svg id="verifyBtnSpinner" class="hidden w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Stepper izquierdo + Tarjeta derecha -->
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+      <section class="md:col-span-4 glass-card rounded-2xl p-5 space-y-4 text-xs">
+        <div class="flex items-start gap-3">
+          <span class="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">✓</span>
+          <div>
+            <p class="font-bold theme-text-primary">Activar verificación en dos pasos</p>
+            <p class="text-[11px] theme-text-muted">Completa los pasos para proteger tu cuenta</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <span class="w-5 h-5 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">✓</span>
+          <div>
+            <p class="font-bold theme-text-primary">Elegir método</p>
+            <p id="stepperMethodLabel" class="text-[11px] theme-text-muted">Google Authenticator</p>
+          </div>
+        </div>
+
+        <div class="flex items-start gap-3">
+          <span class="w-5 h-5 rounded-full border border-slate-500 theme-text-muted flex items-center justify-center shrink-0 mt-0.5 text-[11px] font-bold">2</span>
+          <div>
+            <p class="font-bold theme-text-primary">Ingresar código</p>
+            <p class="text-[11px] theme-text-muted">6 dígitos</p>
+          </div>
+        </div>
+
+        <div class="pt-1">
+          <button id="switchMethodBtn" type="button" onclick="toggleVerificationMethod()"
+            class="text-xs font-semibold text-brand-400 hover:underline cursor-pointer">
+            Usar código por correo
+          </button>
+        </div>
+      </section>
+
+      <section class="md:col-span-8 glass-card rounded-2xl p-5 sm:p-6 space-y-5">
+        <div class="flex items-start gap-3.5">
+          <div id="methodBadgeIcon"
+            class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-base">
+            🔐
+          </div>
+          <div>
+            <h2 id="methodCardTitle" class="text-sm sm:text-base font-bold theme-text-primary">Google Authenticator</h2>
+            <span class="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              ✓ Método seleccionado
+            </span>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <h3 id="methodInstructionTitle" class="text-xs sm:text-sm font-bold theme-text-primary">Abre Google Authenticator</h3>
+          <p id="methodInstructionDesc" class="text-xs theme-text-muted">
+            Ingresa el código de 6 dígitos que muestra la app para Chat SIS
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-medium theme-text-secondary">Código de verificación</label>
+          <div id="loginOtpRow" class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+            <input type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 1" class="otp-digit-lg theme-input focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+            <input type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 2" class="otp-digit-lg theme-input focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+            <input type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 3" class="otp-digit-lg theme-input focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+            <input type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 4" class="otp-digit-lg theme-input focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+            <input type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 5" class="otp-digit-lg theme-input focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+            <input type="text" inputmode="numeric" maxlength="1" aria-label="Dígito 6" class="otp-digit-lg theme-input focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
+          </div>
+          <p id="methodFootnote" class="text-[11px] theme-text-muted pt-1">
+            Los códigos se renuevan cada 30 segundos y funcionan sin conexión a internet
+          </p>
+          <div id="emailResendWrap" class="hidden pt-1">
+            <button id="loginResendCodeBtn" type="button" onclick="resendLoginEmailCode()"
+              class="text-xs font-semibold text-brand-400 hover:underline disabled:opacity-60 cursor-pointer disabled:cursor-default">
+              Reenviar código en 60 s
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="src/shared/admin-shell.js"></script>
+  <script>
+    const TWO_FA_STORAGE_KEY = 'chatAdmin2faMethod_v1';
+    let activeMethod = localStorage.getItem(TWO_FA_STORAGE_KEY) === 'email' ? 'email' : 'authenticator';
+    let resendCountdown = 0;
+    let resendInterval = null;
+
+    function applyThemeListeners() {
+      applyThemeClasses();
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.addEventListener('click', () => {
+          document.documentElement.classList.add('theme-animating');
+          isDark = !isDark;
+          localStorage.setItem('chatAdminTheme', isDark ? 'dark' : 'light');
+          applyThemeClasses();
+          setTimeout(() => document.documentElement.classList.remove('theme-animating'), 280);
+        });
+      }
+    }
+
+    function syncMethodUI() {
+      const isEmail = activeMethod === 'email';
+      const userLabel = sessionStorage.getItem('chatAdminUser') || 'gustavo.reyes@salud.gob.sv';
+
+      document.getElementById('twoFactorSubtitle').textContent = isEmail
+        ? `Ingresa el código de 6 dígitos enviado a ${userLabel}`
+        : 'Ingresa el código de 6 dígitos que muestra Google Authenticator';
+      document.getElementById('stepperMethodLabel').textContent = isEmail ? 'Correo electrónico' : 'Google Authenticator';
+      document.getElementById('switchMethodBtn').textContent = isEmail ? 'Usar Google Authenticator' : 'Usar código por correo';
+      document.getElementById('methodBadgeIcon').textContent = isEmail ? '✉️' : '🔐';
+      document.getElementById('methodBadgeIcon').className = isEmail
+        ? 'w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shrink-0 font-bold text-base'
+        : 'w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold text-base';
+      document.getElementById('methodCardTitle').textContent = isEmail ? 'Correo electrónico' : 'Google Authenticator';
+      document.getElementById('methodInstructionTitle').textContent = isEmail ? 'Revisa tu correo electrónico' : 'Abre Google Authenticator';
+      document.getElementById('methodInstructionDesc').textContent = isEmail
+        ? `Enviamos un código de verificación temporal a ${userLabel}`
+        : 'Ingresa el código de 6 dígitos que muestra la app para Chat SIS';
+      document.getElementById('methodFootnote').textContent = isEmail
+        ? 'El código enviado por correo vence en 15 minutos'
+        : 'Los códigos se renuevan cada 30 segundos y funcionan sin conexión a internet';
+      document.getElementById('emailResendWrap').classList.toggle('hidden', !isEmail);
+    }
+
+    function toggleVerificationMethod() {
+      activeMethod = activeMethod === 'authenticator' ? 'email' : 'authenticator';
+      syncMethodUI();
+      if (activeMethod === 'email') startLoginResendTimer();
+      const firstInput = document.querySelector('#loginOtpRow input');
+      if (firstInput) firstInput.focus();
+    }
+
+    function startLoginResendTimer() {
+      if (resendInterval) clearInterval(resendInterval);
+      resendCountdown = 60;
+      updateResendBtn();
+      resendInterval = setInterval(() => {
+        resendCountdown--;
+        updateResendBtn();
+        if (resendCountdown <= 0) {
+          clearInterval(resendInterval);
+          resendInterval = null;
+        }
+      }, 1000);
+    }
+
+    function updateResendBtn() {
+      const btn = document.getElementById('loginResendCodeBtn');
+      if (!btn) return;
+      if (resendCountdown > 0) {
+        btn.textContent = `Reenviar código en ${resendCountdown} s`;
+        btn.disabled = true;
+      } else {
+        btn.textContent = 'Reenviar código';
+        btn.disabled = false;
+      }
+    }
+
+    function resendLoginEmailCode() {
+      if (resendCountdown > 0) return;
+      startLoginResendTimer();
+      showAlert('Código de verificación reenviado.', 'info');
+    }
+
+    function getLoginOtpCode() {
+      return Array.from(document.querySelectorAll('#loginOtpRow input')).map((i) => i.value.trim()).join('');
+    }
+
+    function bindLoginOtpInputs() {
+      const inputs = Array.from(document.querySelectorAll('#loginOtpRow input'));
+      const syncBtn = () => {
+        document.getElementById('verify2faBtn').disabled = getLoginOtpCode().length !== 6;
+      };
+
+      inputs.forEach((input, idx) => {
+        input.addEventListener('input', (e) => {
+          e.target.value = e.target.value.replace(/\D/g, '').slice(-1);
+          if (e.target.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+          syncBtn();
+        });
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && !input.value && idx > 0) inputs[idx - 1].focus();
+          if (e.key === 'Enter' && getLoginOtpCode().length === 6) verifyTwoFactorCode();
+        });
+
+        input.addEventListener('paste', (e) => {
+          const digits = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+          if (!digits) return;
+          e.preventDefault();
+          digits.split('').forEach((d, offset) => {
+            if (inputs[offset]) inputs[offset].value = d;
+          });
+          inputs[Math.min(digits.length, inputs.length - 1)].focus();
+          syncBtn();
+        });
+      });
+
+      if (inputs[0]) inputs[0].focus();
+      syncBtn();
+    }
+
+    function verifyTwoFactorCode() {
+      if (getLoginOtpCode().length !== 6) return;
+      const btn = document.getElementById('verify2faBtn');
+      const icon = document.getElementById('verifyBtnIcon');
+      const text = document.getElementById('verifyBtnText');
+      const spinner = document.getElementById('verifyBtnSpinner');
+
+      btn.disabled = true;
+      icon.classList.add('hidden');
+      spinner.classList.remove('hidden');
+      text.textContent = 'Verificando...';
+
+      setTimeout(() => {
+        sessionStorage.setItem('chatAdminSession', 'active');
+        showAlert('Verificación completada. Entrando al panel...', 'success');
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 450);
+      }, 450);
+    }
+
+    applyThemeListeners();
+    syncMethodUI();
+    bindLoginOtpInputs();
+  </script>
+</body>
+
+</html>

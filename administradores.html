@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Admin - Administradores</title>
+  <script>
+    document.documentElement.classList.add('no-theme-transition');
+    if (localStorage.getItem('chatAdminTheme') === 'light') {
+      document.documentElement.classList.add('light');
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      requestAnimationFrame(() => document.documentElement.classList.remove('no-theme-transition'));
+    });
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/shared/admin-shell.css">
+</head>
+
+<body class="min-h-full mesh-gradient text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+  <div class="relative z-10 flex min-h-screen">
+    <div id="adminSidebarMount"></div>
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <div id="adminTopbarMount"></div>
+
+      <main class="flex-1 px-4 sm:px-6 lg:px-8 py-6 space-y-5 max-w-[1600px] w-full mx-auto">
+        <!-- Encabezado y botón Nuevo administrador -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight theme-text-primary">Administradores del sistema</h1>
+
+          <button type="button" onclick="openAdminFormModal(null)"
+            class="btn-primary-gradient px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 self-start sm:self-auto cursor-pointer">
+            <span>+ Nuevo administrador</span>
+          </button>
+        </div>
+
+        <!-- Banner informativo -->
+        <div class="badge-info-soft rounded-xl px-4 py-3 flex items-start sm:items-center gap-2.5 text-xs font-medium">
+          <svg class="w-4 h-4 shrink-0 mt-0.5 sm:mt-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>
+            Estos administradores solo tienen acceso al panel de administración. No son usuarios del chat. El superadministrador (definido en el servidor) no aparece en esta lista.
+          </span>
+        </div>
+
+        <!-- Tabla de administradores -->
+        <section class="glass-card rounded-2xl overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b theme-border text-[11px] font-bold uppercase tracking-wider theme-text-muted">
+                  <th class="px-5 py-3.5">Nombre</th>
+                  <th class="px-4 py-3.5">Usuario</th>
+                  <th class="px-4 py-3.5">Correo</th>
+                  <th class="px-4 py-3.5">Permisos</th>
+                  <th class="px-4 py-3.5">Estado</th>
+                  <th class="px-5 py-3.5 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="adminsTableBody" class="divide-y theme-border text-xs"></tbody>
+            </table>
+          </div>
+
+          <!-- Paginación -->
+          <div class="px-5 py-3.5 border-t theme-border flex flex-wrap items-center justify-end gap-4 text-xs theme-text-muted">
+            <div class="flex items-center gap-2">
+              <span>Elementos por página:</span>
+              <select id="adminsPageSize" onchange="changeAdminsPageSize()"
+                class="theme-input px-2.5 py-1 rounded-lg text-xs focus:outline-none cursor-pointer">
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">Todos</option>
+              </select>
+            </div>
+            <span id="adminsRangeText" class="font-medium theme-text-secondary">1–7 de 7</span>
+            <div class="flex items-center gap-1">
+              <button id="adminsFirstBtn" type="button" onclick="goToAdminsPage(1)" title="Primera página"
+                class="p-1.5 rounded-lg page-btn cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed">|&lt;</button>
+              <button id="adminsPrevBtn" type="button" onclick="goToAdminsPage(currentPage - 1)" title="Anterior"
+                class="p-1.5 rounded-lg page-btn cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed">&lt;</button>
+              <button id="adminsNextBtn" type="button" onclick="goToAdminsPage(currentPage + 1)" title="Siguiente"
+                class="p-1.5 rounded-lg page-btn cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed">&gt;</button>
+              <button id="adminsLastBtn" type="button" onclick="goToAdminsPage(totalPages)" title="Última página"
+                class="p-1.5 rounded-lg page-btn cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed">&gt;|</button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo / Editar administrador -->
+  <div id="adminFormModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4"
+    onclick="handleModalBackdropClick(event, 'adminFormModal')">
+    <div class="glass-card rounded-2xl w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-6 py-4 border-b theme-border flex items-center justify-between">
+        <h3 id="adminModalTitle" class="text-base sm:text-lg font-bold theme-text-primary">Nuevo administrador</h3>
+        <button type="button" onclick="closeModal('adminFormModal')"
+          class="theme-text-muted hover:text-brand-400 text-xl leading-none cursor-pointer" aria-label="Cerrar">×</button>
+      </div>
+
+      <form onsubmit="event.preventDefault(); saveAdminForm();" class="p-6 space-y-4 overflow-y-auto text-xs flex-1">
+        <div class="space-y-1">
+          <label for="adminNameInput" class="block text-[11px] font-semibold theme-text-secondary">
+            Nombre completo <span class="text-rose-400">*</span>
+          </label>
+          <input id="adminNameInput" type="text" required placeholder="Ej: Gustavo Reyes"
+            class="theme-input w-full px-3.5 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25" />
+        </div>
+
+        <div class="space-y-1">
+          <label for="adminEmailInput" class="block text-[11px] font-semibold theme-text-secondary">
+            Correo electrónico <span class="text-rose-400">*</span>
+          </label>
+          <div class="relative">
+            <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center theme-text-muted">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </span>
+            <input id="adminEmailInput" type="email" required placeholder="usuario@salud.gob.sv"
+              class="theme-input w-full pl-10 pr-4 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25" />
+          </div>
+          <p class="text-[11px] theme-text-muted">Será su usuario para iniciar sesión</p>
+        </div>
+
+        <!-- Identidad para mensajes masivos -->
+        <div class="pt-1 space-y-3 border-t theme-border">
+          <p class="text-xs font-bold theme-text-primary pt-1">Identidad para mensajes masivos</p>
+
+          <div class="flex items-center gap-3.5">
+            <input id="adminAvatarFile" type="file" accept=".jpg,.jpeg,.png,.webp,.heic" class="hidden"
+              onchange="handleAvatarSelected(this.files[0])" />
+            <button type="button" onclick="document.getElementById('adminAvatarFile').click()"
+              title="Seleccionar avatar"
+              class="w-12 h-12 rounded-full border-2 border-dashed border-slate-500/50 hover:border-brand-400 flex items-center justify-center overflow-hidden shrink-0 transition-colors cursor-pointer theme-surface-muted">
+              <img id="adminAvatarThumb" src="" alt="Avatar" class="hidden w-full h-full object-cover" />
+              <span id="adminAvatarPlus" class="text-lg theme-text-muted">+</span>
+            </button>
+            <div class="space-y-0.5 text-[11px]">
+              <p class="font-semibold theme-text-secondary">Avatar (opcional)</p>
+              <p class="theme-text-muted">Haz clic en el círculo para agregar una imagen</p>
+              <p class="text-[10px] theme-text-muted">JPG, PNG, WEBP o HEIC · Máximo 5 MB</p>
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <label for="adminAliasInput" class="block text-[11px] font-semibold theme-text-secondary">
+              Alias <span class="text-rose-400">*</span>
+            </label>
+            <input id="adminAliasInput" type="text" required oninput="syncAliasPreview()" placeholder="Ej: Comunicación Institucional"
+              class="theme-input w-full px-3.5 py-2 rounded-xl text-xs focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25" />
+            <p class="text-[11px] theme-text-muted">Este es el nombre que se mostrará al enviar un mensaje masivo</p>
+          </div>
+
+          <div class="theme-surface-muted rounded-xl px-3.5 py-2.5 flex items-center gap-3">
+            <span id="aliasPreviewAvatar"
+              class="w-8 h-8 rounded-full bg-brand-600/25 text-brand-400 border border-brand-500/30 font-bold text-xs flex items-center justify-center overflow-hidden shrink-0">
+              A
+            </span>
+            <div>
+              <p class="text-[10px] theme-text-muted">Vista previa del remitente</p>
+              <p id="aliasPreviewName" class="text-xs font-bold theme-text-primary">Tu alias</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selector múltiple de permisos -->
+        <div class="space-y-1.5">
+          <label class="block text-[11px] font-semibold theme-text-secondary">Permisos de acceso</label>
+          <div class="relative">
+            <div onclick="togglePermissionsDropdown()"
+              class="theme-input min-h-[42px] px-3 py-2 rounded-xl flex flex-wrap items-center gap-1.5 pr-8 cursor-pointer">
+              <div id="selectedPermissionsChips" class="flex flex-wrap gap-1.5 flex-1"></div>
+              <svg class="w-4 h-4 theme-text-muted absolute right-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+            <div id="permissionsDropdown"
+              class="hidden mt-1.5 rounded-xl border theme-border glass-card p-2 space-y-1 max-h-44 overflow-y-auto shadow-xl"></div>
+          </div>
+          <p class="text-[11px] theme-text-muted">El administrador solo verá las secciones seleccionadas</p>
+        </div>
+
+        <label class="inline-flex items-center gap-2 text-xs font-semibold theme-text-primary cursor-pointer">
+          <input id="adminActiveCheckbox" type="checkbox" checked class="accent-brand-500 w-4 h-4 rounded cursor-pointer" />
+          <span>Cuenta activa</span>
+        </label>
+
+        <!-- Aviso nuevo administrador -->
+        <div id="newAdminInviteNotice" class="badge-info-soft rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 text-xs">
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <span>Enviaremos una invitación a este correo para que cree su contraseña</span>
+        </div>
+
+        <!-- Bloque de seguridad (solo edición) -->
+        <div id="editSecuritySection" class="hidden pt-3 border-t theme-border space-y-3">
+          <p class="text-xs font-bold theme-text-primary">Seguridad</p>
+
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-start gap-2.5">
+              <svg class="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+              <div>
+                <p class="font-semibold theme-text-primary">Contraseña</p>
+                <p id="securityPwdStatus" class="text-[11px] text-emerald-400">Definida por el administrador</p>
+              </div>
+            </div>
+            <button type="button" onclick="sendPasswordResetLink()"
+              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold quick-pill transition-all cursor-pointer shrink-0">
+              Enviar enlace para restablecer
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex items-start gap-2.5">
+              <svg class="w-4 h-4 theme-text-muted mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <div>
+                <p class="font-semibold theme-text-primary">Verificación en dos pasos</p>
+                <p id="security2faStatus" class="text-[11px] theme-text-muted">Se configura en su próximo inicio de sesión</p>
+              </div>
+            </div>
+            <button id="reset2faBtn" type="button" onclick="resetAdmin2fa()" disabled
+              class="px-3 py-1.5 rounded-xl text-[11px] font-semibold theme-btn-subtle transition-all cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed shrink-0">
+              Restablecer 2FA
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t theme-border flex items-center justify-end gap-2.5">
+          <button type="button" onclick="closeModal('adminFormModal')"
+            class="px-4 py-2 rounded-xl text-xs font-semibold theme-text-muted hover:text-brand-400 transition-colors cursor-pointer">
+            Cancelar
+          </button>
+          <button type="submit" id="adminSubmitBtn"
+            class="btn-primary-gradient px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+            Crear administrador
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Confirmar eliminación -->
+  <div id="deleteAdminModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/75 backdrop-blur-sm p-4"
+    onclick="handleModalBackdropClick(event, 'deleteAdminModal')">
+    <div class="glass-card rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
+      <div class="p-5 space-y-3 text-xs">
+        <h3 class="text-base font-bold theme-text-primary">¿Eliminar administrador?</h3>
+        <p id="deleteAdminConfirmText" class="leading-relaxed theme-text-secondary"></p>
+      </div>
+      <div class="px-5 py-3.5 border-t theme-border flex items-center justify-end gap-2.5">
+        <button type="button" onclick="closeModal('deleteAdminModal')"
+          class="px-4 py-2 rounded-xl text-xs font-semibold theme-btn-subtle transition-all cursor-pointer">
+          Cancelar
+        </button>
+        <button type="button" onclick="confirmDeleteAdmin()"
+          class="btn-danger-soft px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer">
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="src/shared/admin-shell.js"></script>
+  <script>
+    const ALL_PERMISSIONS = [
+      'Dashboard',
+      'Salas',
+      'Moderación',
+      'Dispositivos vinculados',
+      'Mensaje masivo',
+      'Mensajes privados',
+      'Auditoría',
+      'Buscar mensajes',
+      'Usuarios'
+    ];
+    const ADMINS_STORAGE_KEY = 'chatAdminAdminsList_v1';
+
+    const DEFAULT_ADMINS = [
+      {
+        id: 'adm-1',
+        name: 'usuario prueba',
+        username: 'correochatadmin@yopmail.com',
+        email: 'correochatadmin@yopmail.com',
+        pendingVerification: false,
+        alias: 'Usuario',
+        avatarDataUrl: '',
+        permissions: ['Dashboard', 'Salas', 'Moderación', 'Dispositivos vinculados', 'Mensaje masivo', 'Mensajes privados', 'Auditoría', 'Buscar mensajes'],
+        active: true,
+        passwordDefined: true,
+        has2FA: false
+      },
+      {
+        id: 'adm-2',
+        name: 'Giovanni',
+        username: 'geovanni.rodriguez@salud.gob.sv',
+        email: 'geovanni.rodriguez@salud.gob.sv',
+        pendingVerification: true,
+        alias: 'Giovanni',
+        avatarDataUrl: '',
+        permissions: ['Mensaje masivo', 'Dispositivos vinculados', 'Moderación', 'Salas', 'Dashboard', 'Mensajes privados', 'Auditoría', 'Buscar mensajes'],
+        active: true,
+        passwordDefined: false,
+        has2FA: false
+      },
+      {
+        id: 'adm-3',
+        name: 'Celina mejia',
+        username: 'esmeralda.mejia@salud.gob.sv',
+        email: 'esmeralda.mejia@salud.gob.sv',
+        pendingVerification: false,
+        alias: 'Celina Mejía',
+        avatarDataUrl: '',
+        permissions: ['Dashboard', 'Moderación'],
+        active: true,
+        passwordDefined: true,
+        has2FA: true
+      },
+      {
+        id: 'adm-4',
+        name: 'Gustavo Reyes',
+        username: 'gustavo.reyes@salud.gob.sv',
+        email: 'gustavo.reyes@salud.gob.sv',
+        pendingVerification: false,
+        alias: 'Gustavo Reyes',
+        avatarDataUrl: '',
+        permissions: ['Dashboard', 'Salas', 'Moderación', 'Dispositivos vinculados', 'Mensajes privados', 'Auditoría', 'Buscar mensajes'],
+        active: true,
+        passwordDefined: true,
+        has2FA: true
+      },
+      {
+        id: 'adm-5',
+        name: 'jose sanches',
+        username: 'ricardo.benja.93@gmail.com',
+        email: 'ricardo.benja.93@gmail.com',
+        pendingVerification: false,
+        alias: 'José Sánchez',
+        avatarDataUrl: '',
+        permissions: ['Dashboard', 'Salas', 'Moderación', 'Dispositivos vinculados'],
+        active: true,
+        passwordDefined: true,
+        has2FA: false
+      },
+      {
+        id: 'adm-6',
+        name: 'Salvador Flamenco uno',
+        username: 'sflamenco',
+        email: 'salvador.flamenco@salud.gob.sv',
+        pendingVerification: false,
+        alias: 'Salvador Flamenco',
+        avatarDataUrl: '',
+        permissions: ['Dashboard', 'Salas', 'Moderación', 'Mensajes privados', 'Auditoría', 'Buscar mensajes', 'Mensaje masivo'],
+        active: true,
+        passwordDefined: true,
+        has2FA: true
+      },
+      {
+        id: 'adm-7',
+        name: 'jose armando sanchez',
+        username: 'adminusuarios',
+        email: '',
+        pendingVerification: false,
+        alias: 'Admin Usuarios',
+        avatarDataUrl: '',
+        permissions: ['Usuarios'],
+        active: true,
+        passwordDefined: true,
+        has2FA: false
+      }
+    ];
+
+    let adminsList = loadAdminsList();
+    let currentPage = 1;
+    let totalPages = 1;
+    let editingAdminId = null;
+    let deletingAdminId = null;
+    let draftPermissions = [];
+    let draftAvatarDataUrl = '';
+    let permissionsDropdownOpen = false;
+
+    function loadAdminsList() {
+      try {
+        const raw = localStorage.getItem(ADMINS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        // Fallback
+      }
+      return DEFAULT_ADMINS.map((a) => ({ ...a, permissions: a.permissions.slice() }));
+    }
+
+    function saveAdminsList() {
+      try {
+        localStorage.setItem(ADMINS_STORAGE_KEY, JSON.stringify(adminsList));
+      } catch (e) {
+        // Ignorar
+      }
+    }
+
+    function renderAdminsTable() {
+      const sizeRaw = document.getElementById('adminsPageSize').value;
+      const pageSize = sizeRaw === 'all' ? Math.max(1, adminsList.length) : Number(sizeRaw) || 10;
+      totalPages = Math.max(1, Math.ceil(adminsList.length / pageSize));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const pageItems = adminsList.slice(startIndex, startIndex + pageSize);
+      const tbody = document.getElementById('adminsTableBody');
+
+      if (pageItems.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-10 text-center text-xs theme-text-muted">No hay administradores registrados.</td></tr>`;
+      } else {
+        tbody.innerHTML = pageItems.map((adm) => {
+          const emailHtml = adm.email
+            ? `<div><p class="theme-text-secondary">${escapeHtml(adm.email)}</p>${adm.pendingVerification ? '<span class="inline-block mt-1 px-2 py-0.5 rounded-full text-[10px] font-semibold badge-warning-soft">Verificación pendiente</span>' : ''}</div>`
+            : `<span class="theme-text-muted">Sin correo</span>`;
+          const permsHtml = `<div class="flex flex-wrap gap-1.5 max-w-md">${adm.permissions.map((p) =>
+            `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold badge-info-soft">${escapeHtml(p)}</span>`
+          ).join('')}</div>`;
+          const statusBadge = adm.active
+            ? '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold badge-success-solid">Activo</span>'
+            : '<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold badge-inactive-soft">Inactivo</span>';
+
+          return `
+            <tr class="table-row-hover transition-colors">
+              <td class="px-5 py-3.5 font-semibold theme-text-primary">${escapeHtml(adm.name)}</td>
+              <td class="px-4 py-3.5 theme-text-secondary">${escapeHtml(adm.username)}</td>
+              <td class="px-4 py-3.5">${emailHtml}</td>
+              <td class="px-4 py-3.5">${permsHtml}</td>
+              <td class="px-4 py-3.5 whitespace-nowrap">${statusBadge}</td>
+              <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                <div class="inline-flex items-center gap-1">
+                  <button type="button" onclick="openAdminFormModal('${adm.id}')" title="Editar administrador"
+                    class="p-1.5 rounded-lg text-brand-400 hover:bg-brand-500/15 transition-colors cursor-pointer" aria-label="Editar">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                  <button type="button" onclick="openDeleteAdminModal('${adm.id}')" title="Eliminar administrador"
+                    class="p-1.5 rounded-lg btn-trash-soft transition-colors cursor-pointer" aria-label="Eliminar">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      const startDisplay = adminsList.length === 0 ? 0 : startIndex + 1;
+      const endDisplay = Math.min(startIndex + pageSize, adminsList.length);
+      document.getElementById('adminsRangeText').textContent = `${startDisplay}–${endDisplay} de ${adminsList.length}`;
+      document.getElementById('adminsFirstBtn').disabled = currentPage <= 1 || adminsList.length === 0;
+      document.getElementById('adminsPrevBtn').disabled = currentPage <= 1 || adminsList.length === 0;
+      document.getElementById('adminsNextBtn').disabled = currentPage >= totalPages || adminsList.length === 0;
+      document.getElementById('adminsLastBtn').disabled = currentPage >= totalPages || adminsList.length === 0;
+    }
+
+    function changeAdminsPageSize() {
+      currentPage = 1;
+      renderAdminsTable();
+    }
+
+    function goToAdminsPage(page) {
+      currentPage = Math.min(Math.max(1, page), totalPages);
+      renderAdminsTable();
+    }
+
+    function openAdminFormModal(adminId) {
+      editingAdminId = adminId;
+      permissionsDropdownOpen = false;
+      document.getElementById('permissionsDropdown').classList.add('hidden');
+      const isEdit = Boolean(adminId);
+      const adm = isEdit ? adminsList.find((a) => a.id === adminId) : null;
+
+      document.getElementById('adminModalTitle').textContent = isEdit ? 'Editar administrador' : 'Nuevo administrador';
+      document.getElementById('adminSubmitBtn').textContent = isEdit ? 'Guardar cambios' : 'Crear administrador';
+      document.getElementById('newAdminInviteNotice').classList.toggle('hidden', isEdit);
+      document.getElementById('editSecuritySection').classList.toggle('hidden', !isEdit);
+
+      document.getElementById('adminNameInput').value = adm ? adm.name : '';
+      document.getElementById('adminEmailInput').value = adm ? (adm.email || adm.username) : '';
+      document.getElementById('adminAliasInput').value = adm ? adm.alias : '';
+      document.getElementById('adminActiveCheckbox').checked = adm ? adm.active : true;
+      draftAvatarDataUrl = adm ? (adm.avatarDataUrl || '') : '';
+      draftPermissions = adm ? adm.permissions.slice() : ['Dashboard'];
+
+      if (adm) {
+        document.getElementById('securityPwdStatus').textContent = adm.passwordDefined
+          ? 'Definida por el administrador'
+          : 'Pendiente de aceptar invitación';
+        document.getElementById('security2faStatus').textContent = adm.has2FA
+          ? 'Activa y configurada'
+          : 'Se configura en su próximo inicio de sesión';
+        document.getElementById('reset2faBtn').disabled = !adm.has2FA;
+      }
+
+      syncAvatarUI();
+      syncAliasPreview();
+      renderPermissionsChips();
+      openModal('adminFormModal', 'adminNameInput');
+    }
+
+    function handleAvatarSelected(file) {
+      if (!file) return;
+      if (!/\.(jpg|jpeg|png|webp|heic)$/i.test(file.name) && !file.type.startsWith('image/')) {
+        showAlert('Selecciona una imagen válida (JPG, PNG, WEBP o HEIC).', 'error');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        showAlert('La imagen del avatar supera el tamaño máximo de 5 MB.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = String(reader.result || '');
+        if (!result.startsWith('data:image/')) {
+          showAlert('El archivo seleccionado no es una imagen válida.', 'error');
+          return;
+        }
+        draftAvatarDataUrl = result;
+        syncAvatarUI();
+        syncAliasPreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function syncAvatarUI() {
+      const thumb = document.getElementById('adminAvatarThumb');
+      const plus = document.getElementById('adminAvatarPlus');
+      if (draftAvatarDataUrl) {
+        thumb.src = draftAvatarDataUrl;
+        thumb.classList.remove('hidden');
+        plus.classList.add('hidden');
+      } else {
+        thumb.src = '';
+        thumb.classList.add('hidden');
+        plus.classList.remove('hidden');
+      }
+    }
+
+    function syncAliasPreview() {
+      const rawAlias = document.getElementById('adminAliasInput').value.trim();
+      const displayAlias = rawAlias || 'Tu alias';
+      document.getElementById('aliasPreviewName').textContent = displayAlias;
+
+      const avatarBox = document.getElementById('aliasPreviewAvatar');
+      avatarBox.textContent = '';
+      if (draftAvatarDataUrl && draftAvatarDataUrl.startsWith('data:image/')) {
+        const img = document.createElement('img');
+        img.src = draftAvatarDataUrl;
+        img.alt = 'Vista previa';
+        img.className = 'w-full h-full object-cover';
+        avatarBox.appendChild(img);
+      } else {
+        avatarBox.textContent = (rawAlias || 'A').charAt(0).toUpperCase();
+      }
+    }
+
+    function renderPermissionsChips() {
+      const container = document.getElementById('selectedPermissionsChips');
+      if (draftPermissions.length === 0) {
+        container.innerHTML = `<span class="text-xs theme-text-muted">Selecciona uno o más permisos...</span>`;
+      } else {
+        container.innerHTML = draftPermissions.map((perm) => `
+          <span class="chip-permission inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold">
+            <span>${escapeHtml(perm)}</span>
+            <button type="button" onclick="event.stopPropagation(); removePermission('${escapeHtml(perm)}')"
+              class="hover:text-rose-400 font-bold cursor-pointer">×</button>
+          </span>
+        `).join('');
+      }
+
+      const dd = document.getElementById('permissionsDropdown');
+      dd.innerHTML = ALL_PERMISSIONS.map((perm) => {
+        const checked = draftPermissions.includes(perm);
+        return `
+          <label class="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs theme-text-secondary table-row-hover cursor-pointer">
+            <input type="checkbox" ${checked ? 'checked' : ''} onchange="togglePermission('${escapeHtml(perm)}', this.checked)"
+              class="accent-brand-500 w-3.5 h-3.5 rounded cursor-pointer" />
+            <span>${escapeHtml(perm)}</span>
+          </label>
+        `;
+      }).join('');
+    }
+
+    function togglePermissionsDropdown() {
+      permissionsDropdownOpen = !permissionsDropdownOpen;
+      document.getElementById('permissionsDropdown').classList.toggle('hidden', !permissionsDropdownOpen);
+    }
+
+    function togglePermission(perm, checked) {
+      if (checked && !draftPermissions.includes(perm)) draftPermissions.push(perm);
+      if (!checked) draftPermissions = draftPermissions.filter((p) => p !== perm);
+      renderPermissionsChips();
+    }
+
+    function removePermission(perm) {
+      draftPermissions = draftPermissions.filter((p) => p !== perm);
+      renderPermissionsChips();
+    }
+
+    function sendPasswordResetLink() {
+      const email = document.getElementById('adminEmailInput').value.trim();
+      showAlert(`Enlace de restablecimiento de contraseña enviado a ${email}.`, 'success');
+    }
+
+    function resetAdmin2fa() {
+      if (!editingAdminId) return;
+      const adm = adminsList.find((a) => a.id === editingAdminId);
+      if (!adm) return;
+      adm.has2FA = false;
+      saveAdminsList();
+      document.getElementById('security2faStatus').textContent = 'Se configura en su próximo inicio de sesión';
+      document.getElementById('reset2faBtn').disabled = true;
+      showAlert('Verificación en dos pasos restablecida.', 'success');
+    }
+
+    function saveAdminForm() {
+      const name = document.getElementById('adminNameInput').value.trim();
+      const email = document.getElementById('adminEmailInput').value.trim();
+      const alias = document.getElementById('adminAliasInput').value.trim();
+      const active = document.getElementById('adminActiveCheckbox').checked;
+
+      if (!name || !email || !alias) {
+        showAlert('Completa todos los campos obligatorios (*).', 'error');
+        return;
+      }
+      if (draftPermissions.length === 0) {
+        showAlert('Selecciona al menos un permiso de acceso.', 'error');
+        return;
+      }
+
+      if (editingAdminId) {
+        const adm = adminsList.find((a) => a.id === editingAdminId);
+        if (!adm) return;
+        adm.name = name;
+        if (adm.email || adm.username.includes('@')) adm.username = email;
+        adm.email = email;
+        adm.alias = alias;
+        adm.avatarDataUrl = draftAvatarDataUrl;
+        adm.permissions = draftPermissions.slice();
+        adm.active = active;
+        showAlert('Administrador actualizado correctamente.', 'success');
+      } else {
+        adminsList.unshift({
+          id: `adm-${Date.now()}`,
+          name,
+          username: email,
+          email,
+          pendingVerification: true,
+          alias,
+          avatarDataUrl: draftAvatarDataUrl,
+          permissions: draftPermissions.slice(),
+          active,
+          passwordDefined: false,
+          has2FA: false
+        });
+        currentPage = 1;
+        showAlert(`Administrador creado. Se envió invitación a ${email}.`, 'success');
+      }
+
+      saveAdminsList();
+      closeModal('adminFormModal');
+      renderAdminsTable();
+    }
+
+    function openDeleteAdminModal(adminId) {
+      const adm = adminsList.find((a) => a.id === adminId);
+      if (!adm) return;
+      deletingAdminId = adminId;
+      const identifier = adm.email || adm.username;
+      document.getElementById('deleteAdminConfirmText').innerHTML =
+        `Esta acción eliminará al administrador <strong class="theme-text-primary">${escapeHtml(adm.name)}</strong> (${escapeHtml(identifier)}) permanentemente.`;
+      openModal('deleteAdminModal');
+    }
+
+    function confirmDeleteAdmin() {
+      if (!deletingAdminId) return;
+      adminsList = adminsList.filter((a) => a.id !== deletingAdminId);
+      deletingAdminId = null;
+      saveAdminsList();
+      closeModal('deleteAdminModal');
+      renderAdminsTable();
+      showAlert('Administrador eliminado correctamente', 'success');
+    }
+
+    initAdminShell({ activeNav: 'Administradores', modalIds: ['adminFormModal', 'deleteAdminModal'] });
+    renderAdminsTable();
+  </script>
+</body>
+
+</html>
