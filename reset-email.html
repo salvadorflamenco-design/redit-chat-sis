@@ -3,56 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Correo de recuperación</title>
+  <title>Correo de recuperaci&oacute;n</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root { color-scheme: light; --page: #eef3f8; --surface: #ffffff; --surface-muted: #f8fafc; --border: #dbe4ee; --text: #172033; --muted: #718096; --blue: #1d6fe9; --blue-soft: #e8f1ff; }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 2rem 1rem; background: #f8fafc; color: #0f172a; font-family: "Plus Jakarta Sans", sans-serif; }
-    .email-card { width: min(100%, 680px); padding: 3.5rem 3rem; background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 12px 35px rgba(15, 23, 42, 0.12); text-align: center; }
-    .logo { width: 4.5rem; height: 4.5rem; margin: 0 auto 1.5rem; }
-    .logo svg { width: 100%; height: 100%; }
-    h1 { margin: 0; font-size: clamp(1.35rem, 3vw, 1.8rem); font-weight: 700; }
-    p { margin: 1rem 0 0; color: #334155; font-size: 0.95rem; line-height: 1.6; }
-    .button { display: inline-block; margin-top: 1.5rem; padding: 0.85rem 1.4rem; border-radius: 0.3rem; background: #1d6fe9; color: white; font-size: 0.85rem; font-weight: 700; text-decoration: none; }
-    .button:hover { background: #1d4ed8; }
-    .muted { color: #94a3b8; font-size: 0.8rem; }
-    .app-alert { position: fixed; top: 1rem; right: 1rem; display: flex; gap: 0.65rem; align-items: flex-start; width: min(360px, calc(100% - 2rem)); padding: 0.75rem 0.8rem; border: 1px solid; border-radius: 0.75rem; box-shadow: 0 10px 25px rgba(2, 6, 23, 0.2); font-size: 0.75rem; line-height: 1.1rem; }
-    .app-alert-info { color: #075985; background: #e0f2fe; border-color: #7dd3fc; }
-    .app-alert-icon { width: 1rem; height: 1rem; flex: 0 0 auto; }
-    .app-alert-message { flex: 1; }
-    .app-alert-close { margin-left: auto; border: 0; background: transparent; color: currentColor; cursor: pointer; font-size: 1.1rem; line-height: 1rem; }
+    body { margin: 0; min-height: 100vh; background: var(--page); color: var(--text); font-family: "Plus Jakarta Sans", sans-serif; }
+    button, input { font: inherit; }
+    .mail-app { width: min(1180px, calc(100% - 2rem)); min-height: min(760px, calc(100vh - 2rem)); margin: 1rem auto; display: grid; grid-template-rows: 4.25rem 1fr; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 1rem; box-shadow: 0 18px 45px rgba(25, 53, 84, 0.14); }
+    .mail-header { display: flex; align-items: center; gap: 1.5rem; padding: 0 1.5rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .brand { display: flex; align-items: center; gap: 0.7rem; min-width: 11rem; font-weight: 800; letter-spacing: -0.03em; }
+    .brand-mark { width: 2rem; height: 2rem; }
+    .brand-mark path:first-child { fill: var(--blue); }
+    .brand-mark circle { fill: white; }
+    .search { width: min(30rem, 45%); padding: 0.7rem 1rem; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--surface-muted); color: var(--muted); font-size: 0.8rem; outline: none; }
+    .profile { margin-left: auto; display: flex; align-items: center; gap: 0.6rem; color: var(--muted); font-size: 0.78rem; }
+    .avatar { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-size: 0.75rem; font-weight: 700; }
+    .mail-layout { display: grid; grid-template-columns: 12.5rem 19rem 1fr; min-height: 0; }
+    .sidebar, .message-list { padding: 1.25rem 1rem; background: var(--surface-muted); border-right: 1px solid var(--border); }
+    .compose { width: 100%; padding: 0.75rem 1rem; border-radius: 0.65rem; background: var(--blue); color: white; font-size: 0.78rem; font-weight: 700; text-align: center; }
+    .folders { display: grid; gap: 0.35rem; margin-top: 1.5rem; }
+    .folder { display: flex; justify-content: space-between; padding: 0.65rem 0.7rem; border-radius: 0.5rem; color: var(--muted); font-size: 0.78rem; }
+    .folder.active { background: var(--blue-soft); color: var(--blue); font-weight: 700; }
+    .count { font-size: 0.7rem; }
+    .list-heading { display: flex; justify-content: space-between; margin-bottom: 0.9rem; color: var(--muted); font-size: 0.72rem; font-weight: 700; }
+    .message { padding: 0.85rem; border: 1px solid var(--border); border-radius: 0.65rem; background: var(--surface); box-shadow: 0 5px 15px rgba(25, 53, 84, 0.06); }
+    .message-from { display: flex; justify-content: space-between; gap: 0.5rem; font-size: 0.73rem; font-weight: 700; }
+    .message-date { color: var(--muted); font-size: 0.65rem; font-weight: 400; white-space: nowrap; }
+    .message-subject { margin-top: 0.5rem; color: var(--text); font-size: 0.73rem; font-weight: 700; }
+    .message-preview { margin-top: 0.35rem; color: var(--muted); font-size: 0.68rem; line-height: 1.45; }
+    .email-content { padding: clamp(1.5rem, 4vw, 3.5rem); overflow: auto; background: #f3f4f6; }
+    .email-paper { width: min(100%, 620px); margin: 0 auto; padding: 3.5rem 3rem; background: #fff; border: 1px solid #e5e7eb; border-radius: 0.25rem; box-shadow: 0 3px 12px rgba(15, 23, 42, 0.08); text-align: center; }
+    .mail-logo { width: 4.5rem; height: 4.5rem; margin: 0 auto 1.5rem; }
+    .mail-logo svg { width: 100%; height: 100%; }
+    .email-paper h1 { margin: 0; color: #111827; font-size: clamp(1.35rem, 3vw, 1.8rem); font-weight: 700; }
+    .email-paper p { margin: 1rem 0 0; color: #334155; font-size: 0.95rem; line-height: 1.6; }
+    .reset-button { margin-top: 1.5rem; padding: 0.85rem 1.4rem; border: 0; border-radius: 0.3rem; background: #1d6fe9; color: white; cursor: pointer; font-size: 0.85rem; font-weight: 700; }
+    .reset-button:hover { background: #1d4ed8; }
+    .email-paper .muted { color: #94a3b8; font-size: 0.8rem; }
+    @media (max-width: 850px) { .mail-layout { grid-template-columns: 10rem 1fr; } .message-list { display: none; } .search { width: 40%; } }
+    @media (max-width: 600px) { .mail-app { width: 100%; min-height: 100vh; margin: 0; border: 0; border-radius: 0; } .mail-header { gap: 0.75rem; padding: 0 1rem; } .brand { min-width: auto; } .brand-name, .profile-name { display: none; } .search { width: 100%; } .mail-layout { grid-template-columns: 1fr; } .sidebar { display: none; } .email-content { padding: 1rem; } .email-paper { padding: 2.5rem 1.25rem; } }
   </style>
 </head>
 <body>
-  <div id="alertContainer" aria-live="polite"></div>
-  <main class="email-card">
-    <div class="logo" aria-label="Logo de Chat Admin">
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="#1d6fe9" d="M12 3C6.477 3 2 6.8 2 11.5c0 2.8 1.5 5.3 4 6.8L4.5 21l4.2-1.7c1 .3 2.1.5 3.3.5 5.523 0 10-3.8 10-8.3S17.523 3 12 3Z"></path>
-        <circle cx="8" cy="11.5" r="1" fill="white"></circle>
-        <circle cx="12" cy="11.5" r="1" fill="white"></circle>
-        <circle cx="16" cy="11.5" r="1" fill="white"></circle>
-      </svg>
+  <main class="mail-app" aria-label="Bandeja de entrada simulada">
+    <header class="mail-header">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C6.477 3 2 6.8 2 11.5c0 2.8 1.5 5.3 4 6.8L4.5 21l4.2-1.7c1 .3 2.1.5 3.3.5 5.523 0 10-3.8 10-8.3S17.523 3 12 3Z"></path><circle cx="8" cy="11.5" r="1"></circle><circle cx="12" cy="11.5" r="1"></circle><circle cx="16" cy="11.5" r="1"></circle></svg>
+        <span class="brand-name">Correo simulado</span>
+      </div>
+      <input class="search" type="text" placeholder="Buscar en el correo" aria-label="Buscar en el correo" readonly>
+      <div class="profile"><span class="avatar">AD</span><span class="profile-name">Administrador</span></div>
+    </header>
+    <div class="mail-layout">
+      <aside class="sidebar" aria-label="Carpetas del correo">
+        <div class="compose">Redactar</div>
+        <nav class="folders" aria-label="Carpetas"><div class="folder active"><span>Recibidos</span><span class="count">1</span></div><div class="folder"><span>Destacados</span><span class="count">0</span></div><div class="folder"><span>Enviados</span></div><div class="folder"><span>Papelera</span></div></nav>
+      </aside>
+      <section class="message-list" aria-label="Lista de mensajes">
+        <div class="list-heading"><span>Recibidos</span><span>1 mensaje</span></div>
+        <article class="message"><div class="message-from"><span>Chat Admin</span><span class="message-date">Ahora</span></div><div class="message-subject">Restablece tu contrase&ntilde;a</div><div class="message-preview">Recibimos una solicitud para crear una nueva contrase&ntilde;a...</div></article>
+      </section>
+      <article class="email-content">
+        <div class="email-paper">
+          <div class="mail-logo" aria-label="Logo de Chat Admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#1d6fe9" d="M12 3C6.477 3 2 6.8 2 11.5c0 2.8 1.5 5.3 4 6.8L4.5 21l4.2-1.7c1 .3 2.1.5 3.3.5 5.523 0 10-3.8 10-8.3S17.523 3 12 3Z"></path><circle cx="8" cy="11.5" r="1" fill="white"></circle><circle cx="12" cy="11.5" r="1" fill="white"></circle><circle cx="16" cy="11.5" r="1" fill="white"></circle></svg></div>
+          <h1>&iexcl;Hola, administrador!</h1>
+          <p>Recibimos una solicitud para restablecer tu contrase&ntilde;a.</p>
+          <p>Haz clic en el siguiente bot&oacute;n para crear una nueva:</p>
+          <button class="reset-button" type="button" onclick="openResetPassword()">Restablecer contrase&ntilde;a</button>
+          <p>El enlace vence en 60 minutos y solo puede utilizarse una vez.</p>
+          <p class="muted">Si no lo solicitaste, ignora este correo; tu contrase&ntilde;a no cambiar&aacute;.</p>
+        </div>
+      </article>
     </div>
-    <h1>¡Hola, administrador!</h1>
-    <p>Recibimos una solicitud para restablecer tu contraseña.</p>
-    <p>Haz clic en el siguiente botón para crear una nueva:</p>
-    <a class="button" href="reset-password.html" onclick="showAndContinue(event)">Restablecer contraseña</a>
-    <p>El enlace vence en 60 minutos y solo puede utilizarse una vez.</p>
-    <p class="muted">Si no lo solicitaste, ignora este correo; tu contraseña no cambiará.</p>
   </main>
-
   <script>
-    function showAndContinue(event) {
-      event.preventDefault();
-      const alertElement = document.createElement('div');
-      alertElement.className = 'app-alert app-alert-info';
-      alertElement.innerHTML = '<span class="app-alert-icon">ⓘ</span><span class="app-alert-message">Abriendo la pantalla para crear una nueva contraseña.</span><button class="app-alert-close" type="button">×</button>';
-      alertElement.querySelector('.app-alert-close').addEventListener('click', () => alertElement.remove());
-      document.getElementById('alertContainer').appendChild(alertElement);
-      setTimeout(() => { window.location.href = 'reset-password.html'; }, 500);
+    function openResetPassword() {
+      window.location.href = 'reset-password.html';
     }
   </script>
 </body>
