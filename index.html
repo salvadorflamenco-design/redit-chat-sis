@@ -518,9 +518,9 @@
         if (credentialsAreValid) {
           sessionStorage.setItem('chatAdminSession', 'active');
           sessionStorage.setItem('chatAdminUser', username);
-          showAlert('Credenciales correctas. Abriendo el panel...', 'success');
+          showAlert('Credenciales correctas. Verificando segundo factor...', 'success');
           setTimeout(() => {
-            window.location.href = 'dashboard.html';
+            window.location.href = 'verificacion.html';
           }, 700);
           return;
         }
