@@ -7,7 +7,7 @@
   <title>Chat Admin - Moderación</title>
   <script>
     document.documentElement.classList.add('no-theme-transition');
-    if (localStorage.getItem('chatAdminTheme') === 'light') {
+    if (localStorage.getItem('chatAdminTheme') !== 'dark') {
       document.documentElement.classList.add('light');
     }
     window.addEventListener('DOMContentLoaded', () => {
@@ -2026,7 +2026,7 @@
 
   <script>
     // 1. Estado global y datos simulados consistentes con moderacion.mp4 y sala.html
-    let isDark = localStorage.getItem('chatAdminTheme') !== 'light';
+    let isDark = localStorage.getItem('chatAdminTheme') === 'dark';
     let desktopSidebarCollapsed = false;
     let activeTab = 'alertas';
     let isLiveEnabled = true;

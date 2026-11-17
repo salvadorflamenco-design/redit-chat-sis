@@ -7,7 +7,7 @@
   <title>Chat Admin - Mensaje masivo</title>
   <script>
     document.documentElement.classList.add('no-theme-transition');
-    if (localStorage.getItem('chatAdminTheme') === 'light') {
+    if (localStorage.getItem('chatAdminTheme') !== 'dark') {
       document.documentElement.classList.add('light');
     }
     window.addEventListener('DOMContentLoaded', () => {
@@ -97,7 +97,8 @@
               <div class="relative">
                 <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center theme-text-muted">
                   <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 </span>
                 <input id="estSearchInput" type="text" oninput="renderEstablishmentsList()"
@@ -106,8 +107,10 @@
               </div>
 
               <div class="rounded-xl border theme-border overflow-hidden">
-                <label class="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold theme-surface-muted border-b theme-border cursor-pointer">
-                  <input id="selectAllEstCheckbox" type="checkbox" onchange="toggleSelectAllEstablishments(this.checked)"
+                <label
+                  class="flex items-center gap-2.5 px-3.5 py-2.5 text-xs font-semibold theme-surface-muted border-b theme-border cursor-pointer">
+                  <input id="selectAllEstCheckbox" type="checkbox"
+                    onchange="toggleSelectAllEstablishments(this.checked)"
                     class="accent-brand-500 w-4 h-4 rounded cursor-pointer" />
                   <span>Seleccionar todos</span>
                 </label>
@@ -142,13 +145,15 @@
                   <button type="button" onclick="formatEditor('insertUnorderedList')" title="Lista con viñetas"
                     class="toolbar-btn w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
                     </svg>
                   </button>
                   <button type="button" onclick="formatEditor('insertOrderedList')" title="Lista numerada"
                     class="toolbar-btn w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 6h11M9 12h11M9 18h11M4 6v4m-1 0h2m-2 4h2l-2 3h2" />
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 6h11M9 12h11M9 18h11M4 6v4m-1 0h2m-2 4h2l-2 3h2" />
                     </svg>
                   </button>
                   <span class="w-px h-4 bg-slate-600/40 mx-1"></span>
@@ -170,7 +175,8 @@
                 <!-- Área editable -->
                 <div id="broadcastEditor" contenteditable="true" oninput="updateCharCounter()"
                   data-placeholder="Escribe aquí el mensaje que recibirán los establecimientos..."
-                  class="editor-content min-h-[150px] p-4 text-xs sm:text-sm theme-text-primary focus:outline-none leading-relaxed"></div>
+                  class="editor-content min-h-[150px] p-4 text-xs sm:text-sm theme-text-primary focus:outline-none leading-relaxed">
+                </div>
 
                 <!-- Zona de adjuntos -->
                 <div id="attachmentDropzone"
@@ -222,7 +228,8 @@
                 <label for="displayQuantityInput" class="block text-[11px] font-semibold theme-text-secondary">
                   Cantidad <span class="text-rose-400">*</span>
                 </label>
-                <input id="displayQuantityInput" type="number" min="1" max="720" value="8" oninput="validateDurationInput()"
+                <input id="displayQuantityInput" type="number" min="1" max="720" value="8"
+                  oninput="validateDurationInput()"
                   class="theme-input w-full px-3 py-2 rounded-xl text-xs font-medium focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 transition-all" />
               </div>
             </div>
@@ -260,9 +267,11 @@
                   Hora <span class="text-rose-400">*</span>
                 </label>
                 <div class="flex items-center gap-1.5">
-                  <select id="scheduleHourSelect" class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer"></select>
+                  <select id="scheduleHourSelect"
+                    class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer"></select>
                   <span class="font-bold theme-text-muted">:</span>
-                  <select id="scheduleMinuteSelect" class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer"></select>
+                  <select id="scheduleMinuteSelect"
+                    class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer"></select>
                   <select id="scheduleAmPmSelect" class="theme-input px-2.5 py-2 rounded-xl text-xs cursor-pointer">
                     <option value="AM">AM</option>
                     <option value="PM" selected>PM</option>

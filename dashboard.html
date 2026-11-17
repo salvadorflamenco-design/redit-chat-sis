@@ -7,7 +7,7 @@
   <title>Chat Admin - Dashboard</title>
   <script>
     document.documentElement.classList.add('no-theme-transition');
-    if (localStorage.getItem('chatAdminTheme') === 'light') {
+    if (localStorage.getItem('chatAdminTheme') !== 'dark') {
       document.documentElement.classList.add('light');
     }
     window.addEventListener('DOMContentLoaded', () => {
@@ -149,21 +149,44 @@
       opacity: 0.45;
     }
 
-    .theme-text-primary { color: #ffffff; }
-    .theme-text-secondary { color: #cbd5e1; }
-    .theme-text-muted { color: #94a3b8; }
-    .theme-border { border-color: rgba(51, 65, 85, 0.4); }
+    .theme-text-primary {
+      color: #ffffff;
+    }
 
-    html.light .theme-text-primary { color: #0f172a; }
-    html.light .theme-text-secondary { color: #334155; }
-    html.light .theme-text-muted { color: #64748b; }
-    html.light .theme-border { border-color: #e2e8f0; }
+    .theme-text-secondary {
+      color: #cbd5e1;
+    }
+
+    .theme-text-muted {
+      color: #94a3b8;
+    }
+
+    .theme-border {
+      border-color: rgba(51, 65, 85, 0.4);
+    }
+
+    html.light .theme-text-primary {
+      color: #0f172a;
+    }
+
+    html.light .theme-text-secondary {
+      color: #334155;
+    }
+
+    html.light .theme-text-muted {
+      color: #64748b;
+    }
+
+    html.light .theme-border {
+      border-color: #e2e8f0;
+    }
 
     .theme-input {
       background: rgba(15, 23, 42, 0.7);
       border: 1px solid rgba(51, 65, 85, 0.8);
       color: #f1f5f9;
     }
+
     html.light .theme-input {
       background: #ffffff;
       border-color: #cbd5e1;
@@ -174,49 +197,93 @@
       background: rgba(15, 23, 42, 0.7);
       border: 1px solid rgba(51, 65, 85, 0.7);
     }
+
     html.light .theme-pill-group {
       background: #f1f5f9;
       border-color: #e2e8f0;
     }
 
-    .nav-item { color: #cbd5e1; border: 1px solid transparent; }
-    .nav-item:hover { background: rgba(30, 41, 59, 0.7); color: #ffffff; }
+    .nav-item {
+      color: #cbd5e1;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(30, 41, 59, 0.7);
+      color: #ffffff;
+    }
+
     .nav-item.nav-active {
       background: rgba(29, 111, 233, 0.2);
       color: #93c5fd;
       border-color: rgba(59, 130, 246, 0.3);
     }
-    html.light .nav-item { color: #475569; }
-    html.light .nav-item:hover { background: #f1f5f9; color: #0f172a; }
+
+    html.light .nav-item {
+      color: #475569;
+    }
+
+    html.light .nav-item:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
     html.light .nav-item.nav-active {
       background: #eff6ff;
       color: #1d6fe9;
       border-color: #bfdbfe;
     }
 
-    .preset-btn { color: #94a3b8; border: 1px solid transparent; }
-    .preset-btn:hover { color: #e2e8f0; }
+    .preset-btn {
+      color: #94a3b8;
+      border: 1px solid transparent;
+    }
+
+    .preset-btn:hover {
+      color: #e2e8f0;
+    }
+
     .preset-btn.preset-active {
       background: rgba(29, 111, 233, 0.3);
       color: #bfdbfe;
       border-color: rgba(59, 130, 246, 0.4);
     }
-    html.light .preset-btn { color: #475569; }
-    html.light .preset-btn:hover { color: #0f172a; }
+
+    html.light .preset-btn {
+      color: #475569;
+    }
+
+    html.light .preset-btn:hover {
+      color: #0f172a;
+    }
+
     html.light .preset-btn.preset-active {
       background: #eff6ff;
       color: #1d6fe9;
       border-color: #bfdbfe;
     }
 
-    .chart-toggle-btn { color: #94a3b8; }
-    .chart-toggle-btn:hover { color: #e2e8f0; }
+    .chart-toggle-btn {
+      color: #94a3b8;
+    }
+
+    .chart-toggle-btn:hover {
+      color: #e2e8f0;
+    }
+
     .chart-toggle-btn.chart-toggle-active {
       background: rgba(51, 65, 85, 0.8);
       color: #ffffff;
     }
-    html.light .chart-toggle-btn { color: #64748b; }
-    html.light .chart-toggle-btn:hover { color: #0f172a; }
+
+    html.light .chart-toggle-btn {
+      color: #64748b;
+    }
+
+    html.light .chart-toggle-btn:hover {
+      color: #0f172a;
+    }
+
     html.light .chart-toggle-btn.chart-toggle-active {
       background: #ffffff;
       color: #0f172a;
@@ -228,6 +295,7 @@
       color: #334155;
       border-color: #e2e8f0;
     }
+
     html.light #periodStatusBadge {
       background: #eff6ff;
       color: #1d6fe9;
@@ -514,12 +582,11 @@
   </style>
 </head>
 
-<body
-  class="min-h-full mesh-gradient text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+<body class="min-h-full mesh-gradient text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
 
   <!-- Contenedor de alertas -->
-  <div id="alertContainer"
-    class="fixed top-4 right-4 z-[60] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-3 no-print" aria-live="polite">
+  <div id="alertContainer" class="fixed top-4 right-4 z-[60] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-3 no-print"
+    aria-live="polite">
   </div>
 
   <!-- Luces ambientales decorativas (mismo estilo que index.html) -->
@@ -1304,7 +1371,7 @@
     };
 
     let currentPresetDays = 30;
-    let isDark = localStorage.getItem('chatAdminTheme') !== 'light';
+    let isDark = localStorage.getItem('chatAdminTheme') === 'dark';
     let desktopSidebarCollapsed = false;
 
     const chartInstances = {};

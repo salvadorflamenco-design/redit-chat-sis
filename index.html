@@ -7,7 +7,7 @@
   <title>Chat Admin - Acceso Seguro</title>
   <script>
     document.documentElement.classList.add('no-theme-transition');
-    if (localStorage.getItem('chatAdminTheme') === 'light') {
+    if (localStorage.getItem('chatAdminTheme') !== 'dark') {
       document.documentElement.classList.add('light');
     }
     window.addEventListener('DOMContentLoaded', () => {
@@ -539,7 +539,7 @@
     const themeText = document.getElementById('themeText');
     const body = document.body;
 
-    let isDark = localStorage.getItem('chatAdminTheme') !== 'light';
+    let isDark = localStorage.getItem('chatAdminTheme') === 'dark';
 
     function applyLoginTheme() {
       document.documentElement.classList.toggle('light', !isDark);

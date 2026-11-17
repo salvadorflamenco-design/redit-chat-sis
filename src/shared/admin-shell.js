@@ -175,7 +175,7 @@ const BASE_AUDIT_RECORDS = [
   }
 ];
 
-let isDark = localStorage.getItem('chatAdminTheme') !== 'light';
+let isDark = localStorage.getItem('chatAdminTheme') === 'dark';
 let desktopSidebarCollapsed = false;
 
 function escapeHtml(text) {

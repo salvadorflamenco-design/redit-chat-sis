@@ -7,7 +7,7 @@
   <title>Chat Admin - Administradores</title>
   <script>
     document.documentElement.classList.add('no-theme-transition');
-    if (localStorage.getItem('chatAdminTheme') === 'light') {
+    if (localStorage.getItem('chatAdminTheme') !== 'dark') {
       document.documentElement.classList.add('light');
     }
     window.addEventListener('DOMContentLoaded', () => {

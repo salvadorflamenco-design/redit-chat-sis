@@ -7,7 +7,7 @@
   <title>Chat Admin - Salas</title>
   <script>
     document.documentElement.classList.add('no-theme-transition');
-    if (localStorage.getItem('chatAdminTheme') === 'light') {
+    if (localStorage.getItem('chatAdminTheme') !== 'dark') {
       document.documentElement.classList.add('light');
     }
     window.addEventListener('DOMContentLoaded', () => {
@@ -1023,7 +1023,7 @@
     ];
 
     const REFERENCE_TODAY_ISO = '2026-11-16';
-    let isDark = localStorage.getItem('chatAdminTheme') !== 'light';
+    let isDark = localStorage.getItem('chatAdminTheme') === 'dark';
     let desktopSidebarCollapsed = false;
     let roomsPage = 1;
     let messagesPage = 1;
